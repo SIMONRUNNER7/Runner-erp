@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  president
+  commercial
+  production
+  achats
+  comptable
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  in_production
+  shipped
+  delivered
+  cancelled
+}
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  overdue
+  cancelled
+}
+
+enum PurchaseOrderStatus {
+  draft
+  sent
+  confirmed
+  received
+  cancelled
+}
+
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
+enum SyncStatus {
+  success
+  failure
+  partial
+}
+
+enum StockMovementType {
+  in
+  out
+  adjustment
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String
+  name           String
+  role           Role
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  stockMovements StockMovement[]
+  alerts         Alert[]
+}
+
+model Client {
+  id             String    @id @default(uuid())
+  shopifyId      String?   @unique
+  vosFacturesId  String?   @unique
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  country        String    @default("France")
+  totalOrders    Int       @default(0)
+  totalRevenue   Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  orders         Order[]
+  invoices       Invoice[]
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  shopifyId      String?   @unique
+  name           String
+  sku            String    @unique
+  description    String?
+  price          Float
+  cost           Float     @default(0)
+  stock          Int       @default(0)
+  minStock       Int       @default(5)
+  supplyDays     Int       @default(7)
+  category       String?
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  stockMovements StockMovement[]
+  orderItems     OrderItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  supplierProducts SupplierProduct[]
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  shopifyId      String?     @unique
+  shopifyNumber  String?
+  status         OrderStatus @default(pending)
+  clientId       String
+  client         Client      @relation(fields: [clientId], references: [id])
+  total          Float
+  currency       String      @default("EUR")
+  notes          String?
+  shippingAddress String?
+  trackingNumber String?
+  fulfillmentDate DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+  invoices       Invoice[]
+}
+
+model OrderItem {
+  id         String  @id @default(uuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  total      Float
+}
+
+model StockMovement {
+  id         String            @id @default(uuid())
+  productId  String
+  product    Product           @relation(fields: [productId], references: [id])
+  type       StockMovementType
+  quantity   Int
+  reason     String
+  userId     String?
+  user       User?             @relation(fields: [userId], references: [id])
+  date       DateTime          @default(now())
+  reference  String?
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  vosFacturesId  String?       @unique
+  invoiceNumber  String?       @unique
+  orderId        String?
+  order          Order?        @relation(fields: [orderId], references: [id])
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id])
+  amount         Float
+  taxAmount      Float         @default(0)
+  totalAmount    Float
+  status         InvoiceStatus @default(draft)
+  dueDate        DateTime?
+  paidAt         DateTime?
+  currency       String        @default("EUR")
+  notes          String?
+  pdfUrl         String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Supplier {
+  id               String    @id @default(uuid())
+  name             String
+  email            String?
+  phone            String?
+  address          String?
+  contactName      String?
+  avgDeliveryDays  Int       @default(7)
+  rating           Float     @default(0)
+  active           Boolean   @default(true)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  products         SupplierProduct[]
+  purchaseOrders   PurchaseOrder[]
+}
+
+model SupplierProduct {
+  id          String   @id @default(uuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  unitCost    Float
+  leadDays    Int      @default(7)
+  minQuantity Int      @default(1)
+  @@unique([supplierId, productId])
+}
+
+model PurchaseOrder {
+  id             String              @id @default(uuid())
+  supplierId     String
+  supplier       Supplier            @relation(fields: [supplierId], references: [id])
+  status         PurchaseOrderStatus @default(draft)
+  total          Float               @default(0)
+  currency       String              @default("EUR")
+  expectedDate   DateTime?
+  receivedDate   DateTime?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  items          PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitCost        Float
+  total           Float
+}
+
+model Alert {
+  id         String        @id @default(uuid())
+  type       String
+  message    String
+  severity   AlertSeverity @default(info)
+  userId     String?
+  user       User?         @relation(fields: [userId], references: [id])
+  read       Boolean       @default(false)
+  data       Json?
+  createdAt  DateTime      @default(now())
+}
+
+model AutomationRule {
+  id          String    @id @default(uuid())
+  name        String
+  trigger     String
+  conditions  Json
+  actions     Json
+  active      Boolean   @default(true)
+  lastRun     DateTime?
+  runCount    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SyncLog {
+  id               String     @id @default(uuid())
+  service          String
+  status           SyncStatus
+  recordsProcessed Int        @default(0)
+  error            String?
+  details          Json?
+  runAt            DateTime   @default(now())
+}
