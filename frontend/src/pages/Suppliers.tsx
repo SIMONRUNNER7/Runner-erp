@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Plus, Star, Clock, ShoppingCart } from 'lucide-react';
+import { Search, Plus, Star, Clock } from 'lucide-react';
 import { suppliersApi } from '../lib/api';
 import DataTable, { Column } from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
@@ -38,10 +38,10 @@ export default function Suppliers() {
       key: 'name',
       label: 'Fournisseur',
       sortable: true,
-      render: (val, row) => (
+      render: (val: unknown, row: Record<string, unknown>): ReactNode => (
         <div>
           <p className="font-medium">{val as string}</p>
-          {row.contactName && <p className="text-xs text-gray-400">{row.contactName as string}</p>}
+          {!!row.contactName && <p className="text-xs text-gray-400">{String(row.contactName)}</p>}
         </div>
       ),
     },

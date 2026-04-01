@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Play, Plus, Trash2, Toggle, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Play, Plus, Trash2, Clock, CheckCircle, XCircle, RefreshCw, ToggleLeft } from 'lucide-react';
 import { automationsApi } from '../lib/api';
 import { format, formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -173,7 +173,7 @@ export default function Automations() {
                         rule.active ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-green-100 text-green-700 hover:bg-green-200'
                       )}
                     >
-                      <Toggle size={14} />
+                      <ToggleLeft size={14} />
                       {rule.active ? 'Désactiver' : 'Activer'}
                     </button>
                     <button

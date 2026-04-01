@@ -13,17 +13,6 @@ const formatCurrency = (v: number) =>
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'in_production', 'shipped', 'delivered', 'cancelled'];
 
-interface Order {
-  id: string;
-  shopifyNumber?: string;
-  client?: { name: string };
-  total: number;
-  status: string;
-  createdAt: string;
-  trackingNumber?: string;
-  items?: Array<{ quantity: number }>;
-}
-
 export default function Orders() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

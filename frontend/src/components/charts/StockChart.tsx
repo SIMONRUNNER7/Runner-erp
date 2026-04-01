@@ -7,7 +7,6 @@ import {
   Tooltip,
   Cell,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 
 interface StockData {
