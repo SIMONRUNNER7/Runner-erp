@@ -110,7 +110,7 @@ export class ShopifyService {
             await this.upsertOrder(shopifyOrder);
             synced++;
           } catch (err) {
-            logger.error(`Failed to sync order ${shopifyOrder.id}:`, err);
+            logger.error(`Failed to sync order #${shopifyOrder.order_number} (${shopifyOrder.id}): ${err instanceof Error ? err.message : JSON.stringify(err)}`);
             errors++;
           }
         }
