@@ -1,311 +1,316 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import { Factory, PlayCircle, Send, Package, AlertTriangle, Clock } from 'lucide-react';
-import { ordersApi, stockApi } from '../lib/api';
-import StatusBadge from '../components/StatusBadge';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { Factory, RefreshCw, Search, CheckCircle2, Circle, ChevronDown, ChevronUp } from 'lucide-react';
+import { productionApi } from '../lib/api';
 
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
+type Row = Record<string, string>;
 
-interface OrderItem {
-  quantity: number;
-  product: { name: string; sku: string };
+const COL = {
+  date: 'DATE \nCOMMANDE',
+  client: 'CLIENT',
+  modele: 'MODELE',
+  centre: 'CENTRE',
+  offset: 'OFFSET',
+  main: 'MAIN',
+  shaft: 'SHAFT',
+  taille: 'TAILLE',
+  grip: 'GRIP',
+  couleur: 'COULEUR',
+  mire: 'MIRE',
+  couleurPoids: 'COULEUR\nPOIDS',
+  face: 'FACE',
+  poids: 'POIDS',
+  reglage: 'REGLAGE',
+  adresse: 'ADRESSE',
+  commande: 'COMMANDE',
+  assemblage: 'ASSEMBLAGE',
+  expedition: 'EXPEDITION',
+  dateExpedition: 'DATE\nEXPEDITION',
+  modeExpedition: "Mode d'expédition",
+  facturation: 'Facturation',
+};
+
+// Normalize column key lookup (handles newlines & case)
+function getCol(row: Row, key: string): string {
+  if (row[key] !== undefined) return row[key];
+  const normalized = key.replace(/\n/g, ' ').toLowerCase();
+  const match = Object.keys(row).find(
+    (k) => k.replace(/\n/g, ' ').toLowerCase() === normalized
+  );
+  return match ? row[match] : '';
 }
 
-interface Order {
-  id: string;
-  shopifyNumber?: string;
-  status: string;
-  total: number;
-  currency: string;
-  createdAt: string;
-  client: { name: string };
-  items: OrderItem[];
+function isChecked(val: string): boolean {
+  const v = val?.toLowerCase().trim();
+  return v === 'oui' || v === 'x' || v === '✓' || v === 'true' || v === '1' || v === 'yes';
 }
 
-interface Product {
-  id: string;
-  name: string;
-  sku: string;
-  stock: number;
-  minStock: number | null;
-  category: string | null;
-}
+type FilterStatus = 'all' | 'todo' | 'in_progress' | 'done';
 
 export default function Production() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  const { data: confirmedData, isLoading: loadingConfirmed } = useQuery({
-    queryKey: ['orders', 'production', 'confirmed'],
-    queryFn: () =>
-      ordersApi.list({ status: 'confirmed', limit: 100, sortBy: 'createdAt', sortOrder: 'asc' }).then((r) => r.data),
+  const { data: orders = [], isLoading, error } = useQuery<Row[]>({
+    queryKey: ['production', 'orders'],
+    queryFn: () => productionApi.orders().then((r) => r.data),
+    staleTime: 60_000,
   });
 
-  const { data: inProductionData, isLoading: loadingInProduction } = useQuery({
-    queryKey: ['orders', 'production', 'in_production'],
-    queryFn: () =>
-      ordersApi.list({ status: 'in_production', limit: 100, sortBy: 'createdAt', sortOrder: 'asc' }).then((r) => r.data),
+  const updateMutation = useMutation({
+    mutationFn: ({ row, field, value }: { row: number; field: string; value: string }) =>
+      productionApi.updateRow(row, field, value),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['production', 'orders'] }),
   });
 
-  const { data: shippedTodayData } = useQuery({
-    queryKey: ['orders', 'production', 'shipped_today'],
-    queryFn: () =>
-      ordersApi
-        .list({ status: 'shipped', limit: 100, startDate: startOfToday.toISOString() })
-        .then((r) => r.data),
-  });
+  const filtered = useMemo(() => {
+    return orders.filter((row) => {
+      const client = getCol(row, COL.client).toLowerCase();
+      const modele = getCol(row, COL.modele).toLowerCase();
+      const commande = getCol(row, COL.commande);
+      const q = search.toLowerCase();
 
-  const { data: lowStockData } = useQuery({
-    queryKey: ['stock', 'low-stock'],
-    queryFn: () => stockApi.lowStock().then((r) => r.data),
-  });
+      const matchSearch = !search || client.includes(q) || modele.includes(q);
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      ordersApi.update(id, { status }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders', 'production'] });
-      setUpdatingId(null);
-    },
-    onError: () => setUpdatingId(null),
-  });
+      const assembled = isChecked(getCol(row, COL.assemblage));
+      const shipped = isChecked(getCol(row, COL.expedition));
+      const ordered = isChecked(commande);
 
-  const handleStatusChange = (id: string, newStatus: string) => {
-    setUpdatingId(id);
-    updateStatusMutation.mutate({ id, status: newStatus });
+      let matchFilter = true;
+      if (filter === 'todo') matchFilter = ordered && !assembled;
+      if (filter === 'in_progress') matchFilter = assembled && !shipped;
+      if (filter === 'done') matchFilter = shipped;
+
+      return matchSearch && matchFilter;
+    });
+  }, [orders, search, filter]);
+
+  const stats = useMemo(() => {
+    const total = orders.length;
+    const todo = orders.filter((r) => isChecked(getCol(r, COL.commande)) && !isChecked(getCol(r, COL.assemblage))).length;
+    const inProgress = orders.filter((r) => isChecked(getCol(r, COL.assemblage)) && !isChecked(getCol(r, COL.expedition))).length;
+    const done = orders.filter((r) => isChecked(getCol(r, COL.expedition))).length;
+    return { total, todo, inProgress, done };
+  }, [orders]);
+
+  const toggleCheck = (row: Row, field: string, current: boolean) => {
+    const rowIndex = parseInt(row._rowIndex);
+    updateMutation.mutate({ row: rowIndex, field, value: current ? '' : 'OUI' });
   };
-
-  const confirmedOrders: Order[] = confirmedData?.data || [];
-  const inProductionOrders: Order[] = inProductionData?.data || [];
-  const shippedToday: number = shippedTodayData?.pagination?.total || 0;
-  const lowStockProducts: Product[] = lowStockData || [];
-
-  const isLoading = loadingConfirmed || loadingInProduction;
 
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Factory size={24} className="text-purple-600" />
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Production</h1>
-          <p className="text-sm text-gray-500">
-            {format(today, "EEEE d MMMM yyyy", { locale: fr })}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Factory size={24} className="text-purple-600" />
+          <h1 className="text-2xl font-bold text-gray-900">Production — Commandes 2025</h1>
         </div>
+        <button
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['production', 'orders'] })}
+          className="btn btn-secondary btn-sm flex items-center gap-2"
+        >
+          <RefreshCw size={15} />
+          Actualiser
+        </button>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-500">À lancer</span>
-            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-              <Clock size={18} className="text-blue-600" />
-            </div>
+        {[
+          { label: 'Total lignes', value: stats.total, color: 'text-gray-900', bg: 'bg-gray-50' },
+          { label: 'À assembler', value: stats.todo, color: 'text-blue-700', bg: 'bg-blue-50' },
+          { label: 'Assemblé, à expédier', value: stats.inProgress, color: 'text-purple-700', bg: 'bg-purple-50' },
+          { label: 'Expédiées', value: stats.done, color: 'text-green-700', bg: 'bg-green-50' },
+        ].map((k) => (
+          <div key={k.label} className={`card p-5 ${k.bg}`}>
+            <p className="text-sm text-gray-500 mb-1">{k.label}</p>
+            <p className={`text-3xl font-bold ${k.color}`}>{k.value}</p>
           </div>
-          <p className="text-3xl font-bold text-gray-900">{confirmedOrders.length}</p>
-          <p className="text-xs text-gray-500 mt-1">commandes confirmées</p>
-        </div>
+        ))}
+      </div>
 
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-500">En production</span>
-            <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center">
-              <Factory size={18} className="text-purple-600" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{inProductionOrders.length}</p>
-          <p className="text-xs text-gray-500 mt-1">en cours de fabrication</p>
+      {/* Filters */}
+      <div className="card p-4 flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            className="input pl-9 w-full"
+            placeholder="Rechercher client, modèle..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-500">Expédiées aujourd'hui</span>
-            <div className="w-9 h-9 rounded-lg bg-cyan-50 flex items-center justify-center">
-              <Send size={18} className="text-cyan-600" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{shippedToday}</p>
-          <p className="text-xs text-gray-500 mt-1">commandes expédiées</p>
-        </div>
-
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-500">Alertes stock</span>
-            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
-              <AlertTriangle size={18} className="text-red-600" />
-            </div>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{lowStockProducts.length}</p>
-          <p className="text-xs text-gray-500 mt-1">produits en stock bas</p>
+        <div className="flex gap-2">
+          {([
+            ['all', 'Toutes'],
+            ['todo', 'À assembler'],
+            ['in_progress', 'À expédier'],
+            ['done', 'Expédiées'],
+          ] as [FilterStatus, string][]).map(([val, label]) => (
+            <button
+              key={val}
+              onClick={() => setFilter(val)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                filter === val
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Queue: Confirmed → start production */}
+      {/* Table */}
       <div className="card overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Clock size={18} className="text-blue-600" />
-          <h2 className="font-semibold text-gray-900">À lancer en production</h2>
-          <span className="ml-auto badge bg-blue-100 text-blue-700">{confirmedOrders.length}</span>
-        </div>
         {isLoading ? (
-          <div className="p-8 text-center text-gray-400">Chargement...</div>
-        ) : confirmedOrders.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">Aucune commande en attente de production</div>
+          <div className="p-12 text-center text-gray-400">Chargement du Google Sheet...</div>
+        ) : error ? (
+          <div className="p-12 text-center text-red-500">
+            Erreur de connexion au Google Sheet. Vérifiez les credentials.
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-gray-400">Aucune ligne trouvée</div>
         ) : (
-          <div className="divide-y divide-gray-50">
-            {confirmedOrders.map((order) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                updating={updatingId === order.id}
-                onNavigate={() => navigate(`/orders/${order.id}`)}
-                primaryAction={{
-                  label: 'Démarrer',
-                  icon: PlayCircle,
-                  color: 'text-purple-600 hover:bg-purple-50',
-                  onClick: () => handleStatusChange(order.id, 'in_production'),
-                }}
-              />
-            ))}
+          <div className="overflow-x-auto">
+            <table className="table w-full">
+              <thead>
+                <tr>
+                  <th className="w-8">#</th>
+                  <th>Date</th>
+                  <th>Client</th>
+                  <th>Modèle</th>
+                  <th>Main</th>
+                  <th>Shaft</th>
+                  <th>Taille</th>
+                  <th>Grip</th>
+                  <th>Couleur</th>
+                  <th className="text-center">Commande</th>
+                  <th className="text-center">Assemblage</th>
+                  <th className="text-center">Expédition</th>
+                  <th className="text-center">Facturation</th>
+                  <th className="w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row) => {
+                  const rowId = row._rowIndex;
+                  const isExpanded = expandedRow === rowId;
+                  const assembled = isChecked(getCol(row, COL.assemblage));
+                  const shipped = isChecked(getCol(row, COL.expedition));
+                  const ordered = isChecked(getCol(row, COL.commande));
+                  const billed = isChecked(getCol(row, COL.facturation));
+
+                  return [
+                    <tr
+                      key={rowId}
+                      className={`cursor-pointer ${isExpanded ? 'bg-purple-50' : ''}`}
+                      onClick={() => setExpandedRow(isExpanded ? null : rowId)}
+                    >
+                      <td className="text-xs text-gray-400">{rowId}</td>
+                      <td className="text-xs text-gray-500 whitespace-nowrap">
+                        {getCol(row, COL.date)}
+                      </td>
+                      <td className="font-medium">{getCol(row, COL.client)}</td>
+                      <td>{getCol(row, COL.modele)}</td>
+                      <td>{getCol(row, COL.main)}</td>
+                      <td>{getCol(row, COL.shaft)}</td>
+                      <td>{getCol(row, COL.taille)}</td>
+                      <td className="text-xs">{getCol(row, COL.grip)}</td>
+                      <td className="text-xs">{getCol(row, COL.couleur)}</td>
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <CheckButton
+                          checked={ordered}
+                          onChange={() => toggleCheck(row, 'COMMANDE', ordered)}
+                        />
+                      </td>
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <CheckButton
+                          checked={assembled}
+                          onChange={() => toggleCheck(row, 'ASSEMBLAGE', assembled)}
+                        />
+                      </td>
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <CheckButton
+                          checked={shipped}
+                          onChange={() => toggleCheck(row, 'EXPEDITION', shipped)}
+                        />
+                      </td>
+                      <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <CheckButton
+                          checked={billed}
+                          onChange={() => toggleCheck(row, 'Facturation', billed)}
+                        />
+                      </td>
+                      <td>
+                        {isExpanded ? (
+                          <ChevronUp size={14} className="text-gray-400" />
+                        ) : (
+                          <ChevronDown size={14} className="text-gray-400" />
+                        )}
+                      </td>
+                    </tr>,
+                    isExpanded && (
+                      <tr key={`${rowId}-detail`} className="bg-purple-50">
+                        <td colSpan={14} className="px-6 py-4">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-sm">
+                            {[
+                              ['Centre', COL.centre],
+                              ['Offset', COL.offset],
+                              ['Mire', COL.mire],
+                              ['Couleur poids', COL.couleurPoids],
+                              ['Face', COL.face],
+                              ['Poids', COL.poids],
+                              ['Réglage', COL.reglage],
+                              ["Mode d'expédition", COL.modeExpedition],
+                              ["Date expédition", COL.dateExpedition],
+                              ['Adresse', COL.adresse],
+                            ].map(([label, col]) => {
+                              const val = getCol(row, col);
+                              if (!val) return null;
+                              return (
+                                <div key={label}>
+                                  <span className="text-xs text-gray-400 block">{label}</span>
+                                  <span className="font-medium text-gray-800">{val}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                      </tr>
+                    ),
+                  ];
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!isLoading && !error && (
+          <div className="px-6 py-3 border-t border-gray-100 text-sm text-gray-500">
+            {filtered.length} ligne{filtered.length > 1 ? 's' : ''} affichée{filtered.length > 1 ? 's' : ''}
+            {filtered.length !== orders.length && ` sur ${orders.length}`}
           </div>
         )}
       </div>
-
-      {/* Queue: In production → ship */}
-      <div className="card overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Factory size={18} className="text-purple-600" />
-          <h2 className="font-semibold text-gray-900">En cours de production</h2>
-          <span className="ml-auto badge bg-purple-100 text-purple-700">{inProductionOrders.length}</span>
-        </div>
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400">Chargement...</div>
-        ) : inProductionOrders.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">Aucune commande en production</div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {inProductionOrders.map((order) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                updating={updatingId === order.id}
-                onNavigate={() => navigate(`/orders/${order.id}`)}
-                primaryAction={{
-                  label: 'Expédier',
-                  icon: Send,
-                  color: 'text-cyan-600 hover:bg-cyan-50',
-                  onClick: () => handleStatusChange(order.id, 'shipped'),
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Low stock */}
-      {lowStockProducts.length > 0 && (
-        <div className="card overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <AlertTriangle size={18} className="text-red-600" />
-            <h2 className="font-semibold text-gray-900">Stock bas — action requise</h2>
-            <span className="ml-auto badge bg-red-100 text-red-700">{lowStockProducts.length}</span>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {lowStockProducts.map((product) => (
-              <div key={product.id} className="px-6 py-3 flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <Package size={16} className="text-gray-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500">{product.sku}{product.category ? ` · ${product.category}` : ''}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-red-600">{product.stock} en stock</p>
-                  {product.minStock !== null && (
-                    <p className="text-xs text-gray-400">min. {product.minStock}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-interface RowAction {
-  label: string;
-  icon: React.ElementType;
-  color: string;
-  onClick: () => void;
-}
-
-function OrderRow({
-  order,
-  updating,
-  onNavigate,
-  primaryAction,
-}: {
-  order: Order;
-  updating: boolean;
-  onNavigate: () => void;
-  primaryAction: RowAction;
-}) {
-  const totalQty = order.items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
-  const ActionIcon = primaryAction.icon;
-
+function CheckButton({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
-    <div className="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors">
-      <div className="flex-1 min-w-0 cursor-pointer" onClick={onNavigate}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-sm font-semibold text-blue-600">
-            {order.shopifyNumber || `#${order.id.slice(0, 8)}`}
-          </span>
-          <StatusBadge status={order.status} />
-        </div>
-        <p className="text-sm text-gray-700">{order.client?.name}</p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {totalQty} article{totalQty > 1 ? 's' : ''} ·{' '}
-          {format(new Date(order.createdAt), 'dd/MM/yyyy')}
-        </p>
-      </div>
-
-      <div className="text-right mr-2 hidden sm:block">
-        <p className="text-sm font-semibold text-gray-900">{formatCurrency(order.total)}</p>
-        {order.items?.slice(0, 2).map((item, i) => (
-          <p key={i} className="text-xs text-gray-400 truncate max-w-[160px]">
-            {item.quantity}x {item.product?.name}
-          </p>
-        ))}
-        {order.items?.length > 2 && (
-          <p className="text-xs text-gray-400">+{order.items.length - 2} autres</p>
-        )}
-      </div>
-
-      <button
-        onClick={primaryAction.onClick}
-        disabled={updating}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${primaryAction.color}`}
-      >
-        {updating ? (
-          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <ActionIcon size={16} />
-        )}
-        <span className="hidden sm:inline">{primaryAction.label}</span>
-      </button>
-    </div>
+    <button
+      onClick={onChange}
+      className={`inline-flex items-center justify-center w-7 h-7 rounded-full transition-colors ${
+        checked
+          ? 'text-green-600 hover:bg-green-100'
+          : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+      }`}
+    >
+      {checked ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+    </button>
   );
 }

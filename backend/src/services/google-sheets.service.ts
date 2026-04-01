@@ -205,6 +205,47 @@ export class GoogleSheetsService {
     }
   }
 
+  async readProductionOrders(): Promise<Record<string, string>[]> {
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: 'COMMANDES 2025!A1:V',
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map((h: string) => String(h).trim());
+    return rows.slice(1).map((row, i) => {
+      const obj: Record<string, string> = { _rowIndex: String(i + 2) };
+      headers.forEach((header: string, j: number) => {
+        obj[header] = row[j] !== undefined ? String(row[j]) : '';
+      });
+      return obj;
+    });
+  }
+
+  async updateProductionRow(
+    rowIndex: number,
+    field: 'ASSEMBLAGE' | 'EXPEDITION' | 'DATE\nEXPEDITION' | 'Facturation',
+    value: string
+  ): Promise<void> {
+    const colMap: Record<string, string> = {
+      'ASSEMBLAGE': 'R',
+      'EXPEDITION': 'S',
+      'DATE\nEXPEDITION': 'T',
+      'Facturation': 'V',
+    };
+    const col = colMap[field];
+    if (!col) throw new Error(`Unknown field: ${field}`);
+
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: this.spreadsheetId,
+      range: `COMMANDES 2025!${col}${rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [[value]] },
+    });
+  }
+
   async updateOrderTracking(orderId: string, trackingNumber: string): Promise<void> {
     try {
       const order = await prisma.order.findUnique({

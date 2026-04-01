@@ -109,6 +109,12 @@ export const alertsApi = {
   delete: (id: string) => api.delete(`/alerts/${id}`),
 };
 
+export const productionApi = {
+  orders: () => api.get('/production/orders'),
+  updateRow: (row: number, field: string, value: string) =>
+    api.put(`/production/orders/${row}`, { field, value }),
+};
+
 export const automationsApi = {
   list: () => api.get('/automations'),
   get: (id: string) => api.get(`/automations/${id}`),
