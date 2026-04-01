@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { Prisma } from '@prisma/client';
 import { prisma, io } from '../index';
 import logger from '../lib/logger';
 
@@ -14,7 +15,7 @@ interface AlertOptions {
   message: string;
   severity: 'info' | 'warning' | 'critical';
   userId?: string;
-  data?: string;
+  data?: Record<string, unknown>;
 }
 
 export class NotificationService {
@@ -56,7 +57,7 @@ export class NotificationService {
           message: options.message,
           severity: options.severity,
           userId: options.userId || null,
-          data: options.data ?? undefined,
+          data: options.data ? (options.data as Prisma.InputJsonValue) : undefined,
         },
       });
 
