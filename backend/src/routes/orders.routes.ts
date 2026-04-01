@@ -6,6 +6,7 @@ import {
   updateOrder,
   deleteOrder,
   syncShopifyOrders,
+  fullResyncShopifyOrders,
   handleShopifyWebhook,
   createInvoiceFromOrder,
 } from '../controllers/orders.controller';
@@ -22,6 +23,7 @@ router.delete('/:id', authenticate, requireRole('president'), deleteOrder);
 
 // Shopify
 router.post('/sync/shopify', authenticate, requireRole('president', 'commercial'), syncShopifyOrders);
+router.post('/sync/shopify/full', authenticate, requireRole('president'), fullResyncShopifyOrders);
 router.post('/webhooks/shopify', handleShopifyWebhook);
 
 // Invoice from order

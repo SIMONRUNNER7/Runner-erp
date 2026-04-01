@@ -206,6 +206,21 @@ export const syncShopifyOrders = async (_req: AuthRequest, res: Response): Promi
   }
 };
 
+export const fullResyncShopifyOrders = async (_req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Delete all existing Shopify orders to reimport with correct dates
+    await prisma.orderItem.deleteMany({ where: { order: { shopifyId: { not: null } } } });
+    await prisma.order.deleteMany({ where: { shopifyId: { not: null } } });
+
+    const shopify = new ShopifyService();
+    const result = await shopify.syncOrders();
+    res.json({ ...result, message: 'Full resync completed' });
+  } catch (error) {
+    logger.error('fullResync error:', error);
+    res.status(500).json({ error: 'Full resync failed' });
+  }
+};
+
 export const handleShopifyWebhook = async (req: Request, res: Response): Promise<void> => {
   try {
     const topic = req.headers['x-shopify-topic'] as string;

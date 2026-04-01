@@ -93,12 +93,14 @@ export class ShopifyService {
       let hasMore = true;
 
       while (hasMore) {
-        const params: Record<string, string | number> = {
-          limit: 250,
-          status: 'any',
-        };
-        if (sinceId && !pageInfo) params.since_id = sinceId;
-        if (pageInfo) params.page_info = pageInfo;
+        let params: Record<string, string | number>;
+        if (pageInfo) {
+          // Cursor-based pagination: only limit + page_info allowed
+          params = { limit: 250, page_info: pageInfo };
+        } else {
+          params = { limit: 250, status: 'any' };
+          if (sinceId) params.since_id = sinceId;
+        }
 
         const response = await this.client.get('/orders.json', { params });
         const orders: ShopifyOrder[] = response.data.orders;
