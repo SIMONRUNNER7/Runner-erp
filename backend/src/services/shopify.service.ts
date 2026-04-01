@@ -89,22 +89,38 @@ export class ShopifyService {
     const startTime = Date.now();
 
     try {
-      const params: Record<string, string | number> = {
-        limit: 250,
-        status: 'any',
-      };
-      if (sinceId) params.since_id = sinceId;
+      let pageInfo: string | null = null;
+      let hasMore = true;
 
-      const response = await this.client.get('/orders.json', { params });
-      const orders: ShopifyOrder[] = response.data.orders;
+      while (hasMore) {
+        const params: Record<string, string | number> = {
+          limit: 250,
+          status: 'any',
+        };
+        if (sinceId && !pageInfo) params.since_id = sinceId;
+        if (pageInfo) params.page_info = pageInfo;
 
-      for (const shopifyOrder of orders) {
-        try {
-          await this.upsertOrder(shopifyOrder);
-          synced++;
-        } catch (err) {
-          logger.error(`Failed to sync order ${shopifyOrder.id}:`, err);
-          errors++;
+        const response = await this.client.get('/orders.json', { params });
+        const orders: ShopifyOrder[] = response.data.orders;
+
+        for (const shopifyOrder of orders) {
+          try {
+            await this.upsertOrder(shopifyOrder);
+            synced++;
+          } catch (err) {
+            logger.error(`Failed to sync order ${shopifyOrder.id}:`, err);
+            errors++;
+          }
+        }
+
+        // Check for next page via Link header
+        const linkHeader = response.headers['link'] as string | undefined;
+        if (linkHeader && linkHeader.includes('rel="next"')) {
+          const match = linkHeader.match(/page_info=([^&>]+)[^>]*>;\s*rel="next"/);
+          pageInfo = match ? match[1] : null;
+          hasMore = !!pageInfo;
+        } else {
+          hasMore = false;
         }
       }
 
@@ -223,6 +239,7 @@ export class ShopifyService {
             ? `${shopifyOrder.shipping_address.address1}, ${shopifyOrder.shipping_address.city}`
             : null,
           trackingNumber,
+          createdAt: new Date(shopifyOrder.created_at),
           items: { create: items },
         },
       });
