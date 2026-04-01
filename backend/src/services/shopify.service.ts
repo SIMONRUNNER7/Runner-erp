@@ -204,7 +204,7 @@ export class ShopifyService {
           where: {
             OR: [
               { shopifyId: String(lineItem.product_id) },
-              { sku: lineItem.sku },
+              ...(lineItem.sku ? [{ sku: lineItem.sku }] : []),
             ],
           },
         });
