@@ -12,6 +12,7 @@ import Suppliers from './pages/Suppliers';
 import Alerts from './pages/Alerts';
 import Automations from './pages/Automations';
 import Settings from './pages/Settings';
+import Production from './pages/Production';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="orders" element={<Orders />} />
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="stock" element={<Stock />} />
+          <Route path="production" element={<Production />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="clients" element={<Clients />} />
           <Route path="suppliers" element={<Suppliers />} />

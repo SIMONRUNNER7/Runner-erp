@@ -10,6 +10,7 @@ import {
   Zap,
   Settings,
   LogOut,
+  Factory,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore, UserRole } from '../store/auth.store';
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['president', 'commercial', 'production', 'achats', 'comptable'] },
   { to: '/orders', label: 'Commandes', icon: ShoppingCart, roles: ['president', 'commercial', 'production', 'achats'] },
   { to: '/stock', label: 'Stock', icon: Package, roles: ['president', 'commercial', 'production', 'achats'] },
+  { to: '/production', label: 'Production', icon: Factory, roles: ['president', 'production'] },
   { to: '/invoices', label: 'Factures', icon: FileText, roles: ['president', 'commercial', 'comptable'] },
   { to: '/clients', label: 'Clients', icon: Users, roles: ['president', 'commercial', 'comptable'] },
   { to: '/suppliers', label: 'Fournisseurs', icon: Truck, roles: ['president', 'achats', 'production'] },
