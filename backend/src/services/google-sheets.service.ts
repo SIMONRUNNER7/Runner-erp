@@ -1,6 +1,18 @@
 import { google, sheets_v4 } from 'googleapis';
+import { createPrivateKey } from 'crypto';
 import { prisma } from '../index';
 import logger from '../lib/logger';
+
+function normalizePem(raw: string): string {
+  const pem = raw.replace(/\\n/g, '\n');
+  try {
+    // Convert PKCS#1 (RSA PRIVATE KEY) to PKCS#8 (PRIVATE KEY) for OpenSSL 3 compatibility
+    const keyObj = createPrivateKey(pem);
+    return keyObj.export({ type: 'pkcs8', format: 'pem' }) as string;
+  } catch {
+    return pem;
+  }
+}
 
 export class GoogleSheetsService {
   private sheets: sheets_v4.Sheets;
@@ -14,7 +26,7 @@ export class GoogleSheetsService {
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        private_key: normalizePem(process.env.GOOGLE_PRIVATE_KEY || ''),
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
