@@ -56,7 +56,7 @@ export class NotificationService {
           message: options.message,
           severity: options.severity,
           userId: options.userId || null,
-          data: options.data || null,
+          data: options.data ?? undefined,
         },
       });
 
