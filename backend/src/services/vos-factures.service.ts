@@ -7,9 +7,10 @@ interface VFInvoice {
   id: string;
   number: string;
   status: string;
-  total_price_gross: number;
+  price_gross: number;
   price_net: number;
-  tax: number;
+  price_tax: number;
+  tax: string;
   issue_date: string;
   payment_date?: string;
   payment_to?: string;
@@ -76,13 +77,17 @@ export class VosFacturesService {
         try {
           const status = this.mapStatus(vfInvoice.status);
 
+          const priceNet = parseFloat(String(vfInvoice.price_net)) || 0;
+          const priceTax = parseFloat(String(vfInvoice.price_tax)) || 0;
+          const priceGross = parseFloat(String(vfInvoice.price_gross)) || priceNet + priceTax;
+
           await prisma.invoice.upsert({
             where: { vosFacturesId: String(vfInvoice.id) },
             update: {
               status,
-              amount: vfInvoice.price_net,
-              taxAmount: vfInvoice.tax,
-              totalAmount: vfInvoice.total_price_gross,
+              amount: priceNet,
+              taxAmount: priceTax,
+              totalAmount: priceGross,
               paidAt: vfInvoice.payment_date ? new Date(vfInvoice.payment_date) : null,
               dueDate: vfInvoice.payment_to ? new Date(vfInvoice.payment_to) : null,
               pdfUrl: vfInvoice.pdf_url || null,
@@ -141,13 +146,17 @@ export class VosFacturesService {
       });
     }
 
+    const priceNet = parseFloat(String(vfInvoice.price_net)) || 0;
+    const priceTax = parseFloat(String(vfInvoice.price_tax)) || 0;
+    const priceGross = parseFloat(String(vfInvoice.price_gross)) || priceNet + priceTax;
+
     return {
       vosFacturesId: String(vfInvoice.id),
       invoiceNumber: vfInvoice.number,
       clientId: client.id,
-      amount: vfInvoice.price_net,
-      taxAmount: vfInvoice.tax,
-      totalAmount: vfInvoice.total_price_gross,
+      amount: priceNet,
+      taxAmount: priceTax,
+      totalAmount: priceGross,
       status: this.mapStatus(vfInvoice.status),
       dueDate: vfInvoice.payment_to ? new Date(vfInvoice.payment_to) : null,
       paidAt: vfInvoice.payment_date ? new Date(vfInvoice.payment_date) : null,
