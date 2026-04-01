@@ -14,7 +14,7 @@ interface AlertOptions {
   message: string;
   severity: 'info' | 'warning' | 'critical';
   userId?: string;
-  data?: Record<string, unknown>;
+  data?: string;
 }
 
 export class NotificationService {
