@@ -36,7 +36,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-gray-900 text-white hover:bg-gray-800 active:bg-black;
+    @apply btn bg-gray-900 text-white hover:bg-black active:bg-black border border-transparent;
   }
 
   .btn-secondary {
@@ -56,7 +56,7 @@
   }
 
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all;
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent transition-all;
   }
 
   .label {

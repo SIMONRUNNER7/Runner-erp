@@ -64,7 +64,12 @@ export default function Sidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-sidebar-border">
-        <img src="/runner-logo.svg" alt="Runner Golf" className="h-9 w-auto" />
+        <img
+          src="https://cdn.shopify.com/s/files/1/0705/1218/1334/files/THE_RUNNER-LOGOS-BLACK_copie.png?v=1772531379"
+          alt="Runner Golf"
+          className="h-9 w-auto"
+          style={{ filter: 'brightness(0) invert(1)' }}
+        />
       </div>
 
       {/* User info */}
@@ -96,7 +101,7 @@ export default function Sidebar() {
                   clsx(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150',
                     isActive
-                      ? 'bg-sidebar-hover text-brand-500 border-l-2 border-brand-500'
+                      ? 'bg-sidebar-hover text-white border-l-2 border-red-600'
                       : 'text-sidebar-text hover:text-white hover:bg-sidebar-hover border-l-2 border-transparent'
                   )
                 }

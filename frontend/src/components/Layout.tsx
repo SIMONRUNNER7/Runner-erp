@@ -59,7 +59,7 @@ export default function Layout() {
             <AlertBell />
 
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
-              <div className="w-7 h-7 bg-gray-900 rounded-full flex items-center justify-center text-white text-xs font-medium">
+              <div className="w-7 h-7 bg-red-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
                 {user?.name.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm font-medium text-gray-700 hidden sm:block">{user?.name}</span>
