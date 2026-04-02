@@ -123,6 +123,7 @@ model Order {
   shippingAddress String?
   trackingNumber String?
   fulfillmentDate DateTime?
+  metafields     Json?       // Shopify order-level metafields
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
   items          OrderItem[]
@@ -138,6 +139,7 @@ model OrderItem {
   quantity   Int
   unitPrice  Float
   total      Float
+  properties Json?   // Shopify line item custom attributes [{name, value}]
 }
 
 model StockMovement {
@@ -189,6 +191,7 @@ model Supplier {
   updatedAt        DateTime  @updatedAt
   products         SupplierProduct[]
   purchaseOrders   PurchaseOrder[]
+  components       Component[]
 }
 
 model SupplierProduct {
@@ -265,17 +268,19 @@ model SyncLog {
 }
 
 model Component {
-  id        String   @id @default(uuid())
-  sku       String   @unique
-  name      String
-  category  String   // arriere | centre | face | mire | poids | shaft | grip
-  stock     Int      @default(0)
-  minStock  Int      @default(5)
-  unitCost  Float    @default(0)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  movements ComponentMovement[]
+  id         String    @id @default(uuid())
+  sku        String    @unique
+  name       String
+  category   String    // arriere | centre | face | mire | poids | shaft | grip
+  stock      Int       @default(0)
+  minStock   Int       @default(5)
+  unitCost   Float     @default(0)
+  active     Boolean   @default(true)
+  supplierId String?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  movements  ComponentMovement[]
 }
 
 model ComponentMovement {

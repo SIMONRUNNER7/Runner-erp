@@ -58,6 +58,7 @@ export const ordersApi = {
   delete: (id: string) => api.delete(`/orders/${id}`),
   syncShopify: () => api.post('/orders/sync/shopify'),
   createInvoice: (id: string) => api.post(`/orders/${id}/invoice`),
+  syncMetafields: (id: string) => api.post(`/orders/${id}/sync-metafields`),
 };
 
 export const stockApi = {
@@ -121,7 +122,9 @@ export const productionApi = {
 export const componentsApi = {
   list: () => api.get('/components'),
   update: (id: string, data: object) => api.put(`/components/${id}`, data),
+  adjust: (id: string, data: object) => api.post(`/components/${id}/adjust`, data),
   seed: () => api.post('/components/seed'),
+  seedSuppliers: () => api.post('/components/seed-suppliers'),
 };
 
 export const automationsApi = {

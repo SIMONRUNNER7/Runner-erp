@@ -28,6 +28,7 @@ interface ShopifyLineItem {
   quantity: number;
   price: string;
   sku: string;
+  properties: Array<{ name: string; value: string }>;
 }
 
 interface ShopifyCustomer {
@@ -225,6 +226,7 @@ export class ShopifyService {
           quantity: lineItem.quantity,
           unitPrice: parseFloat(lineItem.price),
           total: parseFloat(lineItem.price) * lineItem.quantity,
+          properties: lineItem.properties?.length ? lineItem.properties : undefined,
         });
       }
 
@@ -336,6 +338,27 @@ export class ShopifyService {
       }
     } catch (error) {
       logger.error('Webhook order processing error:', error);
+      throw error;
+    }
+  }
+
+  // Fetch and store metafields for a single order (by Shopify order ID)
+  async syncOrderMetafields(shopifyOrderId: string): Promise<void> {
+    try {
+      const response = await this.client.get(`/orders/${shopifyOrderId}/metafields.json`);
+      const metafields = response.data.metafields as Array<{
+        namespace: string;
+        key: string;
+        value: string;
+        type: string;
+      }>;
+
+      await prisma.order.update({
+        where: { shopifyId: shopifyOrderId },
+        data: { metafields },
+      });
+    } catch (error) {
+      logger.error(`Failed to sync metafields for order ${shopifyOrderId}:`, error);
       throw error;
     }
   }

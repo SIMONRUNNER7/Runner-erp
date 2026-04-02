@@ -246,6 +246,24 @@ export const handleShopifyWebhook = async (req: Request, res: Response): Promise
   }
 };
 
+// POST /orders/:id/sync-metafields — fetch Shopify metafields for one order
+export const syncOrderMetafields = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id } });
+    if (!order?.shopifyId) {
+      res.status(404).json({ error: 'Order not found or not a Shopify order' });
+      return;
+    }
+    const shopify = new ShopifyService();
+    await shopify.syncOrderMetafields(order.shopifyId);
+    const updated = await prisma.order.findUnique({ where: { id: req.params.id } });
+    res.json({ metafields: updated?.metafields });
+  } catch (error) {
+    logger.error('syncOrderMetafields error:', error);
+    res.status(500).json({ error: 'Failed to sync metafields' });
+  }
+};
+
 export const createInvoiceFromOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;

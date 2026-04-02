@@ -9,6 +9,7 @@ import {
   fullResyncShopifyOrders,
   handleShopifyWebhook,
   createInvoiceFromOrder,
+  syncOrderMetafields,
 } from '../controllers/orders.controller';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
@@ -28,5 +29,8 @@ router.post('/webhooks/shopify', handleShopifyWebhook);
 
 // Invoice from order
 router.post('/:id/invoice', authenticate, requireRole('president', 'comptable'), createInvoiceFromOrder);
+
+// Shopify metafields for one order
+router.post('/:id/sync-metafields', authenticate, requireRole('president', 'commercial'), syncOrderMetafields);
 
 export default router;

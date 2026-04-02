@@ -9,6 +9,7 @@ export const listComponents = async (_req: Request, res: Response): Promise<void
   try {
     const components = await prisma.component.findMany({
       where: { active: true },
+      include: { supplier: { select: { id: true, name: true } } },
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
     res.json(components);
@@ -18,16 +19,18 @@ export const listComponents = async (_req: Request, res: Response): Promise<void
   }
 };
 
-// PUT /components/:id — update stock
+// PUT /components/:id — update stock / supplier / cost
 export const updateComponent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { stock, minStock, unitCost } = req.body;
+    const { stock, minStock, unitCost, supplierId } = req.body;
     const component = await prisma.component.update({
       where: { id: req.params.id },
+      include: { supplier: { select: { id: true, name: true } } },
       data: {
         ...(stock !== undefined && { stock: parseInt(stock) }),
         ...(minStock !== undefined && { minStock: parseInt(minStock) }),
         ...(unitCost !== undefined && { unitCost: parseFloat(unitCost) }),
+        ...(supplierId !== undefined && { supplierId: supplierId || null }),
       },
     });
     res.json(component);
@@ -53,6 +56,81 @@ export const seedComponents = async (_req: Request, res: Response): Promise<void
   } catch (error) {
     logger.error('seedComponents error:', error);
     res.status(500).json({ error: 'Failed to seed components' });
+  }
+};
+
+// POST /components/seed-suppliers — upsert the 7 Runner suppliers
+const RUNNER_SUPPLIERS = [
+  { name: 'GD PROTO' },
+  { name: 'GARSEN' },
+  { name: 'TOPGOLF' },
+  { name: 'KBS' },
+  { name: 'PINEAPPLE' },
+  { name: 'RAJA' },
+  { name: 'GOLFWORKS' },
+];
+
+export const seedSuppliers = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    let created = 0;
+    for (const s of RUNNER_SUPPLIERS) {
+      const existing = await prisma.supplier.findFirst({ where: { name: s.name } });
+      if (!existing) {
+        await prisma.supplier.create({ data: s });
+        created++;
+      }
+    }
+    res.json({ seeded: created });
+  } catch (error) {
+    logger.error('seedSuppliers error:', error);
+    res.status(500).json({ error: 'Failed to seed suppliers' });
+  }
+};
+
+// POST /components/:id/adjust — stock movement (in/out/adjustment)
+export const adjustComponent = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { type, quantity, reason } = req.body as {
+      type: 'in' | 'out' | 'adjustment';
+      quantity: number;
+      reason: string;
+    };
+
+    const qty = parseInt(String(quantity));
+    if (!qty || !reason) {
+      res.status(400).json({ error: 'quantity and reason are required' });
+      return;
+    }
+
+    const component = await prisma.component.findUnique({ where: { id: req.params.id } });
+    if (!component) {
+      res.status(404).json({ error: 'Component not found' });
+      return;
+    }
+
+    let newStock = component.stock;
+    if (type === 'in') newStock += qty;
+    else if (type === 'out') newStock -= qty;
+    else newStock = qty; // adjustment = set absolute value
+
+    await prisma.component.update({
+      where: { id: req.params.id },
+      data: { stock: newStock },
+    });
+
+    await prisma.componentMovement.create({
+      data: {
+        componentId: component.id,
+        type,
+        quantity: qty,
+        reason,
+      },
+    });
+
+    res.json({ success: true, newStock });
+  } catch (error) {
+    logger.error('adjustComponent error:', error);
+    res.status(500).json({ error: 'Failed to adjust component stock' });
   }
 };
 
