@@ -113,6 +113,7 @@ export const productionApi = {
   orders: () => api.get('/production/orders'),
   updateRow: (row: number, field: string, value: string) =>
     api.put(`/production/orders/${row}`, { field, value }),
+  pdfUrl: (row: number) => `/api/production/orders/${row}/pdf`,
 };
 
 export const automationsApi = {
