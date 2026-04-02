@@ -215,13 +215,14 @@ export class GoogleSheetsService {
     if (rows.length < 2) return [];
 
     const headers = rows[0].map((h: string) => String(h).trim());
-    return rows.slice(1).map((row, i) => {
+    const result = rows.slice(1).map((row, i) => {
       const obj: Record<string, string> = { _rowIndex: String(i + 2) };
       headers.forEach((header: string, j: number) => {
         obj[header] = row[j] !== undefined ? String(row[j]) : '';
       });
       return obj;
     });
+    return result.reverse();
   }
 
   async updateProductionRow(
