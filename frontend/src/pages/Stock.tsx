@@ -4,16 +4,24 @@ import { Search, AlertTriangle, Loader2, Package } from 'lucide-react';
 import { componentsApi, suppliersApi } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
-const CATEGORIES = ['arriere', 'centre', 'face', 'mire', 'poids', 'shaft', 'grip'];
+const CATEGORIES = [
+  'arriere', 'centre', 'face', 'mire', 'poids', 'shaft', 'grip',
+  'cover', 'hardware', 'visserie', 'consommable', 'emballage',
+];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  arriere: 'Pièce arrière',
-  centre:  'Centre',
-  face:    'Face',
-  mire:    'Mire',
-  poids:   'Poids',
-  shaft:   'Shaft',
-  grip:    'Grip',
+  arriere:    'Pièce arrière',
+  centre:     'Centre',
+  face:       'Face',
+  mire:       'Mire',
+  poids:      'Poids',
+  shaft:      'Shaft',
+  grip:       'Grip',
+  cover:      'Cover',
+  hardware:   'Quincaillerie',
+  visserie:   'Visserie',
+  consommable:'Consommable',
+  emballage:  'Emballage',
 };
 
 interface Component {

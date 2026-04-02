@@ -127,6 +127,47 @@ export function resolveComponents(attrs: OrderAttrs): BOMItem[] {
     });
   }
 
+  // ── 8. Cover ──────────────────────────────────────────────────────
+  const isMallet = modele.includes('MALLET');
+  let coverSku: string;
+  let coverName: string;
+  if (isPro && isMallet)       { coverSku = 'COVER-MALLET-PRO';  coverName = 'Cover Mallet PRO'; }
+  else if (isPro)              { coverSku = 'COVER-BLADE-PRO';   coverName = 'Cover Blade PRO'; }
+  else if (isMallet)           { coverSku = 'COVER-MALLET-STD';  coverName = 'Cover Mallet STD'; }
+  else                         { coverSku = 'COVER-BLADE-STD';   coverName = 'Cover Blade STD'; } // BLADE + ORIGINAL
+  items.push({ sku: coverSku, name: coverName, qty: 1, category: 'cover' });
+
+  // ── 9. Clé de réglage ─────────────────────────────────────────────
+  items.push({
+    sku:      isPro ? 'WRENCH-PRO' : 'WRENCH-STD',
+    name:     isPro ? 'Clé PRO' : 'Clé STD',
+    qty:      1,
+    category: 'hardware',
+  });
+
+  // ── 10. Visserie ──────────────────────────────────────────────────
+  items.push({ sku: 'TORX-5X16',  name: 'Vis Torx 5×16',       qty: 2, category: 'visserie' });
+  items.push({ sku: 'ECROU-M4',   name: 'Écrou 10×10×2 M4',    qty: 2, category: 'visserie' });
+  if (isPro) {
+    items.push({ sku: 'TORX-4X8',  name: 'Vis Torx 4×8',  qty: 2, category: 'visserie' });
+  } else {
+    items.push({ sku: 'TORX-4X18', name: 'Vis Torx 4×18', qty: 2, category: 'visserie' });
+  }
+
+  // ── 11. Poids laiton 10g (shaft non-GPS seulement) ────────────────
+  if (!isGPS) {
+    items.push({ sku: 'POIDS-LAITON-10G', name: 'Poids laiton 10g', qty: 1, category: 'hardware' });
+  }
+
+  // ── 12. Consommables ──────────────────────────────────────────────
+  items.push({ sku: 'DOUBLE-FACE-25CM', name: 'Double face 25cm',  qty: 1, category: 'consommable' });
+  items.push({ sku: 'EPOXY-3M-2G',      name: 'Colle époxy 3M 2g', qty: 1, category: 'consommable' });
+
+  // ── 13. Emballage ─────────────────────────────────────────────────
+  items.push({ sku: 'PAPIER-BULLE',    name: 'Papier bulle 100×50cm', qty: 1, category: 'emballage' });
+  items.push({ sku: 'GAINE-15X100',    name: 'Gaine 15×100',          qty: 1, category: 'emballage' });
+  items.push({ sku: 'CARTON-15X15X100',name: 'Carton 15×15×100',      qty: 1, category: 'emballage' });
+
   return items;
 }
 
@@ -193,6 +234,32 @@ export const ALL_COMPONENTS: Omit<BOMItem, 'qty'>[] = [
   { sku: 'PIECE-OFFSET-GRAPHITE',name: 'Pièce Offset Graphite',category: 'shaft' },
 
   // Grips (2)
-  { sku: 'GRIP-STD',           name: 'Grip Standard',     category: 'grip' },
-  { sku: 'GRIP-MIDSIZE-PISTOL',name: 'Grip Midsize Pistol',category: 'grip' },
+  { sku: 'GRIP-STD',           name: 'Grip Standard',      category: 'grip' },
+  { sku: 'GRIP-MIDSIZE-PISTOL',name: 'Grip Midsize Pistol', category: 'grip' },
+
+  // Covers (4)
+  { sku: 'COVER-BLADE-STD',  name: 'Cover Blade STD',  category: 'cover' },
+  { sku: 'COVER-MALLET-STD', name: 'Cover Mallet STD', category: 'cover' },
+  { sku: 'COVER-BLADE-PRO',  name: 'Cover Blade PRO',  category: 'cover' },
+  { sku: 'COVER-MALLET-PRO', name: 'Cover Mallet PRO', category: 'cover' },
+
+  // Hardware (3)
+  { sku: 'WRENCH-STD',       name: 'Clé STD',          category: 'hardware' },
+  { sku: 'WRENCH-PRO',       name: 'Clé PRO',          category: 'hardware' },
+  { sku: 'POIDS-LAITON-10G', name: 'Poids laiton 10g', category: 'hardware' },
+
+  // Visserie (4)
+  { sku: 'TORX-5X16',  name: 'Vis Torx 5×16',    category: 'visserie' },
+  { sku: 'TORX-4X18',  name: 'Vis Torx 4×18',    category: 'visserie' },
+  { sku: 'TORX-4X8',   name: 'Vis Torx 4×8',     category: 'visserie' },
+  { sku: 'ECROU-M4',   name: 'Écrou 10×10×2 M4', category: 'visserie' },
+
+  // Consommables (2)
+  { sku: 'DOUBLE-FACE-25CM', name: 'Double face 25cm',  category: 'consommable' },
+  { sku: 'EPOXY-3M-2G',      name: 'Colle époxy 3M 2g', category: 'consommable' },
+
+  // Emballage (3)
+  { sku: 'PAPIER-BULLE',     name: 'Papier bulle 100×50cm', category: 'emballage' },
+  { sku: 'GAINE-15X100',     name: 'Gaine 15×100',          category: 'emballage' },
+  { sku: 'CARTON-15X15X100', name: 'Carton 15×15×100',      category: 'emballage' },
 ];
