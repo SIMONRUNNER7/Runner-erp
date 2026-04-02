@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import { GoogleSheetsService } from '../services/google-sheets.service';
 import logger from '../lib/logger';
@@ -45,32 +47,35 @@ export const downloadProductionPdf = async (req: Request, res: Response): Promis
       return;
     }
 
-    const get = (key: string) => {
+    const getVal = (key: string) => {
       if (order[key] !== undefined) return order[key];
-      const norm = key.replace(/\n/g, ' ').toLowerCase();
+      const norm = key.replace(/\n/g, ' ').toLowerCase().trim();
       const match = Object.keys(order).find(
-        (k) => k.replace(/\n/g, ' ').toLowerCase() === norm
+        (k) => k.replace(/\n/g, ' ').toLowerCase().trim() === norm
       );
       return match ? order[match] : '';
     };
 
-    const commande = get('COMMANDE');
-    const date = get('DATE \nCOMMANDE') || get('DATE COMMANDE') || get('DATE\nCOMMANDE');
-    const client = get('CLIENT');
-    const modele = get('MODELE');
-    const centre = get('CENTRE');
-    const offset = get('OFFSET');
-    const main = get('MAIN');
-    const shaft = get('SHAFT');
-    const taille = get('TAILLE');
-    const grip = get('GRIP');
-    const couleur = get('COULEUR');
-    const mire = get('MIRE');
-    const couleurPoids = get('COULEUR\nPOIDS') || get('COULEUR POIDS');
-    const face = get('FACE');
-    const poids = get('POIDS');
-    const reglage = get('REGLAGE');
-    const adresse = get('ADRESSE');
+    const commande = getVal('COMMANDE');
+    const date = getVal('DATE \nCOMMANDE') || getVal('DATE COMMANDE') || getVal('DATE\nCOMMANDE');
+    const client = getVal('CLIENT');
+
+    const specs: [string, string][] = [
+      ['MODELE', getVal('MODELE')],
+      ['CENTRE', getVal('CENTRE')],
+      ['OFFSET', getVal('OFFSET')],
+      ['MAIN', getVal('MAIN')],
+      ['SHAFT', getVal('SHAFT')],
+      ['TAILLE', getVal('TAILLE')],
+      ['GRIP', getVal('GRIP')],
+      ['COULEUR', getVal('COULEUR')],
+      ['MIRE', getVal('MIRE')],
+      ['COULEUR POIDS', getVal('COULEUR\nPOIDS') || getVal('COULEUR POIDS')],
+      ['FACE', getVal('FACE')],
+      ['POIDS', getVal('POIDS')],
+      ['REGLAGE', getVal('REGLAGE')],
+      ['ADRESSE', getVal('ADRESSE')],
+    ].filter(([, v]) => v !== '') as [string, string][];
 
     const doc = new PDFDocument({ size: 'A4', margin: 60 });
 
@@ -81,85 +86,66 @@ export const downloadProductionPdf = async (req: Request, res: Response): Promis
     );
     doc.pipe(res);
 
-    // ── Logo RUNNER ──
-    const logoX = doc.page.width / 2;
-    const logoY = 60;
-    const fontSize = 38;
+    const pageW = doc.page.width;
+    const margin = 60;
+    const contentW = pageW - margin * 2;
 
-    doc.font('Helvetica-Bold').fontSize(fontSize).fillColor('#000000');
-    const runW = doc.widthOfString('RUN');
-    const erW = doc.widthOfString('ER');
-    const barW = 8;
-    const gap = 3;
-    const totalW = runW + gap + barW + gap + barW + gap + erW;
-    let x = logoX - totalW / 2;
-
-    doc.text('RUN', x, logoY, { continued: false, lineBreak: false });
-    x += runW + gap;
-
-    // Double barre verticale
-    doc.moveTo(x, logoY - 4).lineTo(x, logoY + fontSize - 2).lineWidth(3).strokeColor('#000').stroke();
-    x += barW;
-    doc.moveTo(x, logoY - 4).lineTo(x, logoY + fontSize - 2).lineWidth(1.5).strokeColor('#CC0000').stroke();
-    x += barW + gap;
-
-    doc.font('Helvetica-Bold').fontSize(fontSize).fillColor('#000000')
-      .text('ER', x, logoY, { lineBreak: false });
+    // ── Logo ──
+    const logoPath = path.join(__dirname, '../../assets/runner-logo.png');
+    if (fs.existsSync(logoPath)) {
+      const maxLogoW = 220;
+      const logoH = maxLogoW * (1249 / 4724);
+      doc.image(logoPath, (pageW - maxLogoW) / 2, margin, { width: maxLogoW });
+      doc.y = margin + logoH + 24;
+    } else {
+      doc.font('Helvetica-Bold').fontSize(32).fillColor('#000')
+        .text('RUNNER', margin, margin, { align: 'center', width: contentW });
+      doc.y = margin + 50;
+    }
 
     // ── Titre ──
-    doc.moveDown(2.5);
-    doc.font('Helvetica-Bold').fontSize(14).fillColor('#000')
-      .text('FICHE DE PRODUCTION', { align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000')
+      .text('FICHE DE PRODUCTION', margin, doc.y, { align: 'center', width: contentW });
+
+    doc.moveDown(2);
 
     // ── Référence commande ──
-    doc.moveDown(1.5);
-    doc.font('Helvetica-Bold').fontSize(18).fillColor('#000')
-      .text(`COMMANDE : ${commande}`, { align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#000')
+      .text(`COMMANDE : ${commande}`, margin, doc.y, { align: 'center', width: contentW });
+
+    doc.moveDown(2);
 
     // ── Séparateur ──
-    doc.moveDown(1);
-    doc.moveTo(60, doc.y).lineTo(doc.page.width - 60, doc.y).lineWidth(1).strokeColor('#ccc').stroke();
-    doc.moveDown(1);
+    doc.moveTo(margin, doc.y).lineTo(pageW - margin, doc.y)
+      .lineWidth(0.5).strokeColor('#999').stroke();
+    doc.moveDown(1.5);
 
     // ── Date + Client ──
-    const labelFont = 'Helvetica-Bold';
-    const valueFont = 'Helvetica';
-    const labelSize = 10;
-    const valueSize = 10;
-
-    const field = (label: string, value: string) => {
+    const centeredLine = (label: string, value: string) => {
       if (!value) return;
-      doc.font(labelFont).fontSize(labelSize).fillColor('#000').text(`${label}: `, { continued: true });
-      doc.font(valueFont).fontSize(valueSize).text(value);
+      const text = `${label} : ${value}`;
+      // Mesure pour centrer correctement
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000')
+        .text(label + ' : ', margin, doc.y, { continued: true, width: contentW, align: 'center' });
+      doc.font('Helvetica').fontSize(10)
+        .text(value, { width: contentW, align: 'center' });
+      void text;
     };
 
-    field('DATE COMMANDE', date);
-    field('CLIENT', client);
+    centeredLine('DATE COMMANDE', date);
+    centeredLine('CLIENT', client);
 
-    doc.moveDown(1);
-    doc.moveTo(60, doc.y).lineTo(doc.page.width - 60, doc.y).lineWidth(0.5).strokeColor('#eee').stroke();
-    doc.moveDown(1);
+    doc.moveDown(1.5);
+    doc.moveTo(margin, doc.y).lineTo(pageW - margin, doc.y)
+      .lineWidth(0.3).strokeColor('#ccc').stroke();
+    doc.moveDown(1.5);
 
-    // ── Specs techniques ──
-    const specs: [string, string][] = [
-      ['MODELE', modele],
-      ['CENTRE', centre],
-      ['OFFSET', offset],
-      ['MAIN', main],
-      ['SHAFT', shaft],
-      ['TAILLE', taille],
-      ['GRIP', grip],
-      ['COULEUR', couleur],
-      ['MIRE', mire],
-      ['COULEUR POIDS', couleurPoids],
-      ['FACE', face],
-      ['POIDS', poids],
-      ['REGLAGE', reglage],
-      ['ADRESSE', adresse],
-    ];
-
+    // ── Specs ──
     for (const [label, value] of specs) {
-      field(label, value);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#000')
+        .text(label + ' : ', margin, doc.y, { continued: true, width: contentW, align: 'center' });
+      doc.font('Helvetica').fontSize(10).fillColor('#222')
+        .text(value, { width: contentW, align: 'center' });
     }
 
     doc.end();
@@ -168,4 +154,3 @@ export const downloadProductionPdf = async (req: Request, res: Response): Promis
     res.status(500).json({ error: 'Failed to generate PDF' });
   }
 };
-
