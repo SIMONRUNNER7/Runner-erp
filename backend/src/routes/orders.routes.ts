@@ -10,6 +10,7 @@ import {
   handleShopifyWebhook,
   createInvoiceFromOrder,
   syncOrderMetafields,
+  syncAllMetafields,
 } from '../controllers/orders.controller';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
@@ -25,6 +26,7 @@ router.delete('/:id', authenticate, requireRole('president'), deleteOrder);
 // Shopify
 router.post('/sync/shopify', authenticate, requireRole('president', 'commercial'), syncShopifyOrders);
 router.post('/sync/shopify/full', authenticate, requireRole('president'), fullResyncShopifyOrders);
+router.post('/sync/metafields', authenticate, requireRole('president', 'commercial'), syncAllMetafields);
 router.post('/webhooks/shopify', handleShopifyWebhook);
 
 // Invoice from order

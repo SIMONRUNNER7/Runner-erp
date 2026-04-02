@@ -59,6 +59,7 @@ export const ordersApi = {
   syncShopify: () => api.post('/orders/sync/shopify'),
   createInvoice: (id: string) => api.post(`/orders/${id}/invoice`),
   syncMetafields: (id: string) => api.post(`/orders/${id}/sync-metafields`),
+  syncAllMetafields: () => api.post('/orders/sync/metafields'),
 };
 
 export const stockApi = {

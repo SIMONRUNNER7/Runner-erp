@@ -197,6 +197,28 @@ export class ShopifyService {
           updatedAt: new Date(shopifyOrder.updated_at),
         },
       });
+
+      // Refresh item properties (configurations) if any line item has properties
+      const hasProps = shopifyOrder.line_items.some((li) => li.properties?.length);
+      if (hasProps) {
+        for (const lineItem of shopifyOrder.line_items) {
+          if (!lineItem.properties?.length) continue;
+          const product = await prisma.product.findFirst({
+            where: {
+              OR: [
+                { shopifyId: String(lineItem.product_id) },
+                ...(lineItem.sku ? [{ sku: lineItem.sku }] : []),
+              ],
+            },
+          });
+          if (product) {
+            await prisma.orderItem.updateMany({
+              where: { orderId: existingOrder.id, productId: product.id },
+              data: { properties: lineItem.properties },
+            });
+          }
+        }
+      }
     } else {
       // Prepare items
       const items = [];
@@ -340,6 +362,38 @@ export class ShopifyService {
       logger.error('Webhook order processing error:', error);
       throw error;
     }
+  }
+
+  // Bulk-sync metafields for all Shopify orders (throttled at 2 req/s)
+  async syncAllOrderMetafields(): Promise<{ synced: number; errors: number }> {
+    const orders = await prisma.order.findMany({
+      where: { shopifyId: { not: null } },
+      select: { id: true, shopifyId: true },
+    });
+
+    let synced = 0;
+    let errors = 0;
+
+    for (const order of orders) {
+      try {
+        const response = await this.client.get(`/orders/${order.shopifyId}/metafields.json`);
+        const metafields = response.data.metafields;
+        if (metafields?.length) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { metafields },
+          });
+        }
+        synced++;
+      } catch (err) {
+        logger.error(`Metafields sync failed for order ${order.shopifyId}:`, err);
+        errors++;
+      }
+      // Throttle: 2 req/s max
+      await new Promise((r) => setTimeout(r, 500));
+    }
+
+    return { synced, errors };
   }
 
   // Fetch and store metafields for a single order (by Shopify order ID)

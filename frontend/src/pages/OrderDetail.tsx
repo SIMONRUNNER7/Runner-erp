@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Save } from 'lucide-react';
+import { ArrowLeft, FileText, Save, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { ordersApi } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
@@ -41,6 +41,15 @@ export default function OrderDetail() {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
   });
+
+  const syncMetafieldsMutation = useMutation({
+    mutationFn: () => ordersApi.syncMetafields(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    },
+  });
+
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   if (isLoading) {
     return (
@@ -122,15 +131,64 @@ export default function OrderDetail() {
                 </tr>
               </thead>
               <tbody>
-                {(order.items || []).map((item: { id: string; product?: { name: string; sku: string }; quantity: number; unitPrice: number; total: number }) => (
-                  <tr key={item.id}>
-                    <td className="font-medium">{item.product?.name || '—'}</td>
-                    <td className="text-gray-500 font-mono text-xs">{item.product?.sku || '—'}</td>
-                    <td>{item.quantity}</td>
-                    <td>{formatCurrency(item.unitPrice)}</td>
-                    <td className="font-medium">{formatCurrency(item.total)}</td>
-                  </tr>
-                ))}
+                {(order.items || []).map((item: {
+                  id: string;
+                  product?: { name: string; sku: string };
+                  quantity: number;
+                  unitPrice: number;
+                  total: number;
+                  properties?: Array<{ name: string; value: string }>;
+                }) => {
+                  const hasProps = item.properties && item.properties.length > 0;
+                  const expanded = expandedItems.has(item.id);
+                  return (
+                    <>
+                      <tr
+                        key={item.id}
+                        className={hasProps ? 'cursor-pointer hover:bg-gray-50' : ''}
+                        onClick={() => {
+                          if (!hasProps) return;
+                          setExpandedItems((prev) => {
+                            const next = new Set(prev);
+                            next.has(item.id) ? next.delete(item.id) : next.add(item.id);
+                            return next;
+                          });
+                        }}
+                      >
+                        <td className="font-medium">
+                          <div className="flex items-center gap-1">
+                            {hasProps && (expanded
+                              ? <ChevronDown size={14} className="text-gray-400 flex-shrink-0" />
+                              : <ChevronRight size={14} className="text-gray-400 flex-shrink-0" />
+                            )}
+                            {item.product?.name || '—'}
+                          </div>
+                        </td>
+                        <td className="text-gray-500 font-mono text-xs">{item.product?.sku || '—'}</td>
+                        <td>{item.quantity}</td>
+                        <td>{formatCurrency(item.unitPrice)}</td>
+                        <td className="font-medium">{formatCurrency(item.total)}</td>
+                      </tr>
+                      {hasProps && expanded && (
+                        <tr key={`${item.id}-props`} className="bg-blue-50">
+                          <td colSpan={5} className="px-6 py-3">
+                            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">
+                              Configuration putter
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
+                              {item.properties!.map((p) => (
+                                <div key={p.name} className="flex items-center gap-2 text-sm">
+                                  <span className="text-gray-500">{p.name}</span>
+                                  <span className="font-medium text-gray-900">{p.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-gray-50">
@@ -140,6 +198,21 @@ export default function OrderDetail() {
               </tfoot>
             </table>
           </div>
+
+          {/* Metafields */}
+          {order.metafields && Array.isArray(order.metafields) && order.metafields.length > 0 && (
+            <div className="card p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">Metafields Shopify</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {(order.metafields as Array<{ namespace: string; key: string; value: string }>).map((mf) => (
+                  <div key={`${mf.namespace}.${mf.key}`} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                    <p className="text-xs text-gray-400 font-mono">{mf.namespace}.{mf.key}</p>
+                    <p className="font-medium text-gray-900 mt-0.5">{mf.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar actions */}
@@ -195,6 +268,16 @@ export default function OrderDetail() {
                 >
                   <FileText size={16} />
                   {createInvoiceMutation.isPending ? 'Création...' : 'Créer une facture'}
+                </button>
+              )}
+              {order.shopifyId && canAccess(['president', 'commercial']) && (
+                <button
+                  onClick={() => syncMetafieldsMutation.mutate()}
+                  disabled={syncMetafieldsMutation.isPending}
+                  className="btn btn-secondary w-full justify-center"
+                >
+                  <RefreshCw size={16} className={syncMetafieldsMutation.isPending ? 'animate-spin' : ''} />
+                  {syncMetafieldsMutation.isPending ? 'Sync...' : 'Sync metafields Shopify'}
                 </button>
               )}
             </div>

@@ -246,6 +246,18 @@ export const handleShopifyWebhook = async (req: Request, res: Response): Promise
   }
 };
 
+// POST /orders/sync/metafields — bulk-fetch metafields for all Shopify orders
+export const syncAllMetafields = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const shopify = new ShopifyService();
+    const result = await shopify.syncAllOrderMetafields();
+    res.json(result);
+  } catch (error) {
+    logger.error('syncAllMetafields error:', error);
+    res.status(500).json({ error: 'Failed to sync metafields' });
+  }
+};
+
 // POST /orders/:id/sync-metafields — fetch Shopify metafields for one order
 export const syncOrderMetafields = async (req: Request, res: Response): Promise<void> => {
   try {

@@ -37,6 +37,13 @@ export default function Orders() {
     },
   });
 
+  const syncMetafieldsMutation = useMutation({
+    mutationFn: () => ordersApi.syncAllMetafields(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
   const columns: Column<Record<string, unknown>>[] = [
     {
       key: 'shopifyNumber',
@@ -101,14 +108,25 @@ export default function Orders() {
         </div>
         <div className="flex items-center gap-2">
           {canAccess(['president', 'commercial']) && (
-            <button
-              onClick={() => syncMutation.mutate()}
-              disabled={syncMutation.isPending}
-              className="btn btn-secondary"
-            >
-              <RefreshCw size={16} className={syncMutation.isPending ? 'animate-spin' : ''} />
-              Sync Shopify
-            </button>
+            <>
+              <button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className="btn btn-secondary"
+              >
+                <RefreshCw size={16} className={syncMutation.isPending ? 'animate-spin' : ''} />
+                Sync Shopify
+              </button>
+              <button
+                onClick={() => syncMetafieldsMutation.mutate()}
+                disabled={syncMetafieldsMutation.isPending}
+                className="btn btn-secondary"
+                title="Importer les metafields et configurations putter depuis Shopify"
+              >
+                <RefreshCw size={16} className={syncMetafieldsMutation.isPending ? 'animate-spin' : ''} />
+                Sync metafields
+              </button>
+            </>
           )}
           {canAccess(['president', 'commercial']) && (
             <button className="btn btn-primary">
