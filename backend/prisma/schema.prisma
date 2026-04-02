@@ -263,3 +263,28 @@ model SyncLog {
   details          Json?
   runAt            DateTime   @default(now())
 }
+
+model Component {
+  id        String   @id @default(uuid())
+  sku       String   @unique
+  name      String
+  category  String   // arriere | centre | face | mire | poids | shaft | grip
+  stock     Int      @default(0)
+  minStock  Int      @default(5)
+  unitCost  Float    @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  movements ComponentMovement[]
+}
+
+model ComponentMovement {
+  id          String            @id @default(uuid())
+  componentId String
+  component   Component         @relation(fields: [componentId], references: [id])
+  type        StockMovementType
+  quantity    Int
+  reason      String
+  reference   String?
+  date        DateTime          @default(now())
+}

@@ -114,6 +114,14 @@ export const productionApi = {
   updateRow: (row: number, field: string, value: string) =>
     api.put(`/production/orders/${row}`, { field, value }),
   pdfUrl: (row: number) => `/api/production/orders/${row}/pdf`,
+  bom: (row: number) => api.get(`/production/orders/${row}/bom`),
+  consume: (row: number) => api.post(`/production/orders/${row}/consume`),
+};
+
+export const componentsApi = {
+  list: () => api.get('/components'),
+  update: (id: string, data: object) => api.put(`/components/${id}`, data),
+  seed: () => api.post('/components/seed'),
 };
 
 export const automationsApi = {

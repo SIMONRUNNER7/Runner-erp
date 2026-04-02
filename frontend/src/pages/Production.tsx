@@ -2,10 +2,19 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Factory, RefreshCw, Search, CheckCircle2, Circle,
-  X, Download, ChevronRight
+  X, Download, ChevronRight, PackageCheck, AlertTriangle, Wrench, Loader2
 } from 'lucide-react';
 import { productionApi } from '../lib/api';
 import { useAuthStore } from '../store/auth.store';
+
+interface BOMItem {
+  sku: string;
+  name: string;
+  qty: number;
+  category: string;
+  stock: number | null;
+  available: boolean;
+}
 
 type Row = Record<string, string>;
 
@@ -261,12 +270,29 @@ function DetailPanel({
   onToggle: (field: string, current: boolean) => void;
   onDownload: () => void;
 }) {
+  const queryClient = useQueryClient();
   const ref = get(row, 'COMMANDE');
   const client = get(row, 'CLIENT');
   const date = get(row, 'DATE \nCOMMANDE') || get(row, 'DATE COMMANDE') || get(row, 'DATE\nCOMMANDE');
   const assembled = isChecked(get(row, 'ASSEMBLAGE'));
   const shipped = isChecked(get(row, 'EXPEDITION'));
   const billed = isChecked(get(row, 'Facturation'));
+
+  const rowIndex = parseInt(row._rowIndex);
+
+  const { data: bomData, isLoading: bomLoading } = useQuery<{ bom: BOMItem[]; canProduce: boolean }>({
+    queryKey: ['production', 'bom', rowIndex],
+    queryFn: () => productionApi.bom(rowIndex).then((r) => r.data),
+    staleTime: 30_000,
+  });
+
+  const consumeMutation = useMutation({
+    mutationFn: () => productionApi.consume(rowIndex),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['production', 'orders'] });
+      queryClient.invalidateQueries({ queryKey: ['production', 'bom', rowIndex] });
+    },
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -345,10 +371,65 @@ function DetailPanel({
               })}
             </div>
           </div>
+
+          {/* BOM / Recette */}
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wide mb-3">Composants</p>
+            {bomLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+                <Loader2 size={16} className="animate-spin" />
+                Calcul de la recette...
+              </div>
+            ) : bomData ? (
+              <div className="space-y-2">
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ${
+                  bomData.canProduce ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                }`}>
+                  {bomData.canProduce
+                    ? <PackageCheck size={16} />
+                    : <AlertTriangle size={16} />}
+                  {bomData.canProduce ? 'Stock disponible pour produire' : 'Stock insuffisant'}
+                </div>
+                <div className="bg-gray-50 rounded-xl divide-y divide-gray-200">
+                  {bomData.bom.map((item) => (
+                    <div key={item.sku} className="flex items-center justify-between px-4 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
+                        <p className="text-xs text-gray-400">{item.sku} · ×{item.qty}</p>
+                      </div>
+                      <div className={`ml-3 text-xs font-semibold px-2 py-1 rounded-lg ${
+                        item.stock === null
+                          ? 'bg-gray-100 text-gray-400'
+                          : item.available
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {item.stock === null ? 'N/A' : `${item.stock} en stock`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white">
+        <div className="px-6 py-4 border-t border-gray-100 sticky bottom-0 bg-white space-y-2">
+          {!assembled && bomData && (
+            <button
+              onClick={() => consumeMutation.mutate()}
+              disabled={consumeMutation.isPending || !bomData.canProduce}
+              className="btn w-full flex items-center justify-center gap-2 bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {consumeMutation.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Wrench size={16} />
+              )}
+              {consumeMutation.isPending ? 'Assemblage en cours...' : 'Marquer assemblé + déduire stock'}
+            </button>
+          )}
           <button
             onClick={onDownload}
             className="btn btn-primary w-full flex items-center justify-center gap-2"

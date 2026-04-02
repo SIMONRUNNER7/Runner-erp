@@ -10,6 +10,7 @@ import alertsRoutes from './alerts.routes';
 import automationsRoutes from './automations.routes';
 import shopifyOauthRoutes from './shopify-oauth.routes';
 import productionRoutes from './production.routes';
+import componentsRoutes from './components.routes';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/alerts', alertsRoutes);
 router.use('/automations', automationsRoutes);
 router.use('/shopify', shopifyOauthRoutes);
 router.use('/production', productionRoutes);
+router.use('/components', componentsRoutes);
 
 export default router;
