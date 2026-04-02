@@ -248,11 +248,12 @@ export class GoogleSheetsService {
   }
 
   // Append a new production order row to COMMANDES 2025
-  // Columns: A=DATE COMMANDE, B=CLIENT, C=MODELE, D=CENTRE, E=OFFSET, F=MAIN, G=SHAFT,
-  //          H=TAILLE, I=GRIP, J=COULEUR, K=MIRE, L=COULEUR POIDS, M=FACE, N=POIDS,
-  //          O=REGLAGE, P=ADRESSE, Q=COMMANDE, R=ASSEMBLAGE, S=EXPEDITION,
-  //          T=DATE EXPEDITION, U=Mode expédition, V=Facturation
+  // Actual column order: A=COMMANDE, B=DATE COMMANDE, C=CLIENT, D=MODELE,
+  // E=CENTRE, F=OFFSET, G=MAIN, H=SHAFT, I=TAILLE, J=GRIP, K=COULEUR, L=MIRE,
+  // M=COULEUR POIDS, N=FACE, O=POIDS, P=REGLAGE, Q=ADRESSE,
+  // R=ASSEMBLAGE, S=EXPEDITION, T=DATE EXPEDITION, U=Mode expédition, V=Facturation
   async appendProductionRow(data: {
+    commande: string;
     date: string;
     client: string;
     modele: string;
@@ -269,31 +270,30 @@ export class GoogleSheetsService {
     poids: string;
     reglage: string;
     adresse: string;
-    commande: string;
   }): Promise<void> {
     const row = [
-      data.date,
-      data.client,
-      data.modele,
-      data.centre,
-      data.offset,
-      data.main,
-      data.shaft,
-      data.taille,
-      data.grip,
-      data.couleur,
-      data.mire,
-      data.couleurPoids,
-      data.face,
-      data.poids,
-      data.reglage,
-      data.adresse,
-      data.commande,
-      '', // ASSEMBLAGE
-      '', // EXPEDITION
-      '', // DATE EXPEDITION
-      '', // Mode expédition
-      '', // Facturation
+      data.commande,      // A: COMMANDE
+      data.date,          // B: DATE COMMANDE
+      data.client,        // C: CLIENT
+      data.modele,        // D: MODELE
+      data.centre,        // E: CENTRE
+      data.offset,        // F: OFFSET
+      data.main,          // G: MAIN
+      data.shaft,         // H: SHAFT
+      data.taille,        // I: TAILLE
+      data.grip,          // J: GRIP
+      data.couleur,       // K: COULEUR
+      data.mire,          // L: MIRE
+      data.couleurPoids,  // M: COULEUR POIDS
+      data.face,          // N: FACE
+      data.poids,         // O: POIDS
+      data.reglage,       // P: REGLAGE
+      data.adresse,       // Q: ADRESSE
+      '',                 // R: ASSEMBLAGE
+      '',                 // S: EXPEDITION
+      '',                 // T: DATE EXPEDITION
+      '',                 // U: Mode expédition
+      '',                 // V: Facturation
     ];
 
     await this.sheets.spreadsheets.values.append({

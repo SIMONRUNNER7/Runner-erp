@@ -314,28 +314,48 @@ export const createProductionLine = async (req: Request, res: Response): Promise
     const prop = (key: string) => props.find((p) => p.name.toUpperCase() === key.toUpperCase())?.value || '';
     const { attrs } = resolveFromShopifyProperties(item.product?.name || '', props);
 
+    // Normalize to Google Sheet format
+    const handRaw = prop('HAND').toUpperCase();
+    const main = handRaw === 'LH' ? 'GAUCHER' : 'DROITIER';
+
+    const shaftRaw = prop('SHAFT TYPE').toUpperCase();
+    let shaft: string;
+    if (shaftRaw.includes('GPS') && shaftRaw.includes('ROUGE')) shaft = 'GPS ROUGE';
+    else if (shaftRaw.includes('GPS')) shaft = 'GPS NOIR';
+    else shaft = 'STANDARD';
+
+    const taille = prop('SIZE').replace(/[a-zA-Z]/g, '').trim(); // "33in" → "33"
+
+    const couleurMap: Record<string, string> = {
+      BLACK: 'NOIR', NOIR: 'NOIR', GREY: 'GRIS', GRAY: 'GRIS', GRIS: 'GRIS', RED: 'ROUGE', ROUGE: 'ROUGE',
+    };
+    const couleur = couleurMap[attrs.couleur.toUpperCase()] || attrs.couleur;
+
+    let face = attrs.face.trim();
+    if (face && !face.includes('°')) face = face + '°';
+
     const ref = prop('_ref') || order.shopifyNumber || order.id.slice(0, 8);
     const date = new Date(order.createdAt).toLocaleDateString('fr-FR');
 
     const sheets = new GoogleSheetsService();
     await sheets.appendProductionRow({
-      date,
+      commande:     ref,           // A: reference B2C/B2B/RB
+      date,                        // B: DATE COMMANDE
       client:       order.client.name,
       modele:       attrs.modele,
       centre:       attrs.centre,
       offset:       attrs.offset,
-      main:         prop('HAND') || 'RH',
-      shaft:        prop('SHAFT TYPE') || attrs.shaft,
-      taille:       prop('SIZE') || '',
+      main,                        // DROITIER / GAUCHER
+      shaft,                       // STANDARD / GPS NOIR / GPS ROUGE
+      taille,                      // "33" (no unit)
       grip:         prop('GRIP TYPE') || attrs.grip,
-      couleur:      attrs.couleur,
+      couleur,                     // NOIR / GRIS / ROUGE
       mire:         attrs.mire,
-      couleurPoids: 'BLACK',
-      face:         attrs.face,
+      couleurPoids: 'NOIR',
+      face,                        // C° / 3° / 4°
       poids:        attrs.poids,
       reglage:      '',
       adresse:      order.shippingAddress || '',
-      commande:     ref,
     });
 
     res.json({ success: true, ref });
