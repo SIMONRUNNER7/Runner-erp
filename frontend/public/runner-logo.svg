@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" fill="none">
+  <text x="0" y="30" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" letter-spacing="6" fill="white">RUNNER</text>
+  <line x1="0" y1="36" x2="155" y2="36" stroke="white" stroke-width="1.5" opacity="0.4"/>
+  <text x="0" y="40" font-family="Arial, sans-serif" font-size="7" font-weight="400" letter-spacing="8" fill="white" opacity="0.6">GOLF</text>
+</svg>

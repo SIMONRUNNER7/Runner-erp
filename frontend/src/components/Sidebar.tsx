@@ -64,15 +64,7 @@ export default function Sidebar() {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-5 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            R
-          </div>
-          <div>
-            <h1 className="text-white font-bold text-sm">RUNNER ERP</h1>
-            <p className="text-sidebar-text text-xs">Système de gestion</p>
-          </div>
-        </div>
+        <img src="/runner-logo.svg" alt="Runner Golf" className="h-9 w-auto" />
       </div>
 
       {/* User info */}
@@ -104,8 +96,8 @@ export default function Sidebar() {
                   clsx(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150',
                     isActive
-                      ? 'bg-sidebar-active text-white'
-                      : 'text-sidebar-text hover:text-white hover:bg-sidebar-hover'
+                      ? 'bg-sidebar-hover text-brand-500 border-l-2 border-brand-500'
+                      : 'text-sidebar-text hover:text-white hover:bg-sidebar-hover border-l-2 border-transparent'
                   )
                 }
               >
