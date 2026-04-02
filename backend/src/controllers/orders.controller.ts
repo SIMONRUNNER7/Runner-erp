@@ -4,6 +4,8 @@ import { AuthRequest } from '../middleware/auth';
 import logger from '../lib/logger';
 import { ShopifyService } from '../services/shopify.service';
 import { VosFacturesService } from '../services/vos-factures.service';
+import { resolveFromShopifyProperties, resolveComponents } from '../services/recipe.service';
+import { GoogleSheetsService } from '../services/google-sheets.service';
 
 export const listOrders = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -247,6 +249,102 @@ export const handleShopifyWebhook = async (req: Request, res: Response): Promise
 };
 
 // POST /orders/sync/metafields — bulk-fetch metafields for all Shopify orders
+// GET /orders/:id/bom — resolve BOM from Shopify line item properties
+export const getOrderBOM = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { items: { include: { product: true } } },
+    });
+    if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
+
+    const results = [];
+    for (const item of order.items) {
+      const props = item.properties as Array<{ name: string; value: string }> | null;
+      if (!props?.length) continue;
+
+      const { attrs, missing } = resolveFromShopifyProperties(item.product?.name || '', props);
+      const bomItems = resolveComponents(attrs);
+
+      // Enrich with stock
+      const skus = bomItems.map((b) => b.sku);
+      const components = await prisma.component.findMany({ where: { sku: { in: skus } } });
+      const stockMap = Object.fromEntries(components.map((c) => [c.sku, c.stock]));
+      const bom = bomItems.map((b) => ({
+        ...b,
+        stock:     stockMap[b.sku] ?? null,
+        available: stockMap[b.sku] !== undefined && stockMap[b.sku] >= b.qty,
+      }));
+
+      results.push({
+        itemId: item.id,
+        product: item.product?.name,
+        attrs,
+        missing,
+        bom,
+        canProduce: bom.every((b) => b.available),
+      });
+    }
+
+    res.json(results);
+  } catch (error) {
+    logger.error('getOrderBOM error:', error);
+    res.status(500).json({ error: 'Failed to resolve BOM' });
+  }
+};
+
+// POST /orders/:id/production — push order to Google Sheets production
+export const createProductionLine = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: req.params.id },
+      include: { client: true, items: { include: { product: true } } },
+    });
+    if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
+
+    const item = order.items[0];
+    if (!item) { res.status(400).json({ error: 'No line items' }); return; }
+
+    const props = item.properties as Array<{ name: string; value: string }> | null;
+    if (!props?.length) {
+      res.status(400).json({ error: 'No Shopify properties on this order — sync Shopify first' });
+      return;
+    }
+
+    const prop = (key: string) => props.find((p) => p.name.toUpperCase() === key.toUpperCase())?.value || '';
+    const { attrs } = resolveFromShopifyProperties(item.product?.name || '', props);
+
+    const ref = prop('_ref') || order.shopifyNumber || order.id.slice(0, 8);
+    const date = new Date(order.createdAt).toLocaleDateString('fr-FR');
+
+    const sheets = new GoogleSheetsService();
+    await sheets.appendProductionRow({
+      date,
+      client:       order.client.name,
+      modele:       attrs.modele,
+      centre:       attrs.centre,
+      offset:       attrs.offset,
+      main:         prop('HAND') || 'RH',
+      shaft:        prop('SHAFT TYPE') || attrs.shaft,
+      taille:       prop('SIZE') || '',
+      grip:         prop('GRIP TYPE') || attrs.grip,
+      couleur:      attrs.couleur,
+      mire:         attrs.mire,
+      couleurPoids: 'BLACK',
+      face:         attrs.face,
+      poids:        attrs.poids,
+      reglage:      '',
+      adresse:      order.shippingAddress || '',
+      commande:     ref,
+    });
+
+    res.json({ success: true, ref });
+  } catch (error) {
+    logger.error('createProductionLine error:', error);
+    res.status(500).json({ error: 'Failed to create production line' });
+  }
+};
+
 export const syncAllMetafields = async (_req: Request, res: Response): Promise<void> => {
   try {
     const shopify = new ShopifyService();

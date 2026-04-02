@@ -60,6 +60,8 @@ export const ordersApi = {
   createInvoice: (id: string) => api.post(`/orders/${id}/invoice`),
   syncMetafields: (id: string) => api.post(`/orders/${id}/sync-metafields`),
   syncAllMetafields: () => api.post('/orders/sync/metafields'),
+  bom: (id: string) => api.get(`/orders/${id}/bom`),
+  createProductionLine: (id: string) => api.post(`/orders/${id}/production`),
 };
 
 export const stockApi = {

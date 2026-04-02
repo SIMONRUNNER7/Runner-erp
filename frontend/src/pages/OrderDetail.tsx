@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Save, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, Save, RefreshCw, ChevronDown, ChevronRight, Factory, PackageCheck, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { ordersApi } from '../lib/api';
 import StatusBadge from '../components/StatusBadge';
@@ -46,10 +46,32 @@ export default function OrderDetail() {
     mutationFn: () => ordersApi.syncMetafields(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['order-bom', id] });
     },
   });
 
+  const productionMutation = useMutation({
+    mutationFn: () => ordersApi.createProductionLine(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+
+  const { data: bomData } = useQuery<Array<{
+    itemId: string;
+    product: string;
+    attrs: Record<string, string>;
+    missing: string[];
+    bom: Array<{ sku: string; name: string; qty: number; category: string; stock: number | null; available: boolean }>;
+    canProduce: boolean;
+  }>>({
+    queryKey: ['order-bom', id],
+    queryFn: () => ordersApi.bom(id!).then((r) => r.data),
+    enabled: !!id,
+  });
+
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [showBOM, setShowBOM] = useState(false);
 
   if (isLoading) {
     return (
@@ -199,6 +221,56 @@ export default function OrderDetail() {
             </table>
           </div>
 
+          {/* BOM */}
+          {showBOM && bomData && bomData.length > 0 && bomData.map((result) => (
+            <div key={result.itemId} className="card p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-gray-900">BOM — {result.product}</h3>
+                <span className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                  result.canProduce ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {result.canProduce ? <PackageCheck size={12} className="inline mr-1" /> : <AlertTriangle size={12} className="inline mr-1" />}
+                  {result.canProduce ? 'Stock OK' : 'Stock insuffisant'}
+                </span>
+              </div>
+
+              {result.missing.length > 0 && (
+                <div className="text-xs text-orange-600 bg-orange-50 rounded-lg px-3 py-2 mb-3">
+                  Champs manquants : {result.missing.join(', ')}
+                </div>
+              )}
+
+              {/* Interpreted attributes */}
+              <div className="grid grid-cols-3 gap-2 mb-4 text-sm">
+                {Object.entries(result.attrs).filter(([,v]) => v).map(([k, v]) => (
+                  <div key={k} className="bg-gray-50 rounded-lg px-3 py-1.5">
+                    <span className="text-gray-400 text-xs">{k}</span>
+                    <p className="font-medium text-gray-900">{v}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Components */}
+              <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                {result.bom.map((item) => (
+                  <div key={item.sku} className="flex items-center justify-between px-4 py-2.5 bg-white">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{item.name}</p>
+                      <p className="text-xs text-gray-400 font-mono">{item.sku} · ×{item.qty}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+                      item.stock === null ? 'bg-gray-100 text-gray-400'
+                      : item.available ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                      {item.stock === null ? 'N/A' : `${item.stock} en stock`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
           {/* Metafields */}
           {order.metafields && Array.isArray(order.metafields) && order.metafields.length > 0 && (
             <div className="card p-6">
@@ -278,6 +350,33 @@ export default function OrderDetail() {
                 >
                   <RefreshCw size={16} className={syncMetafieldsMutation.isPending ? 'animate-spin' : ''} />
                   {syncMetafieldsMutation.isPending ? 'Sync...' : 'Sync metafields Shopify'}
+                </button>
+              )}
+              {canAccess(['president', 'commercial', 'production']) && (
+                <button
+                  onClick={() => setShowBOM((v) => !v)}
+                  className="btn btn-secondary w-full justify-center"
+                >
+                  <PackageCheck size={16} />
+                  {showBOM ? 'Masquer BOM' : 'Voir BOM / Composants'}
+                </button>
+              )}
+              {canAccess(['president', 'commercial', 'production']) && (
+                <button
+                  onClick={() => {
+                    if (confirm('Ajouter cette commande dans la feuille de production Google Sheets ?')) {
+                      productionMutation.mutate();
+                    }
+                  }}
+                  disabled={productionMutation.isPending || productionMutation.isSuccess}
+                  className="btn btn-primary w-full justify-center bg-purple-600 hover:bg-purple-700"
+                >
+                  <Factory size={16} />
+                  {productionMutation.isPending
+                    ? 'Création...'
+                    : productionMutation.isSuccess
+                    ? 'Ligne créée ✓'
+                    : 'Créer ligne de production'}
                 </button>
               )}
             </div>

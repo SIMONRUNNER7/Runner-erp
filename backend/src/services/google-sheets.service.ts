@@ -247,6 +247,64 @@ export class GoogleSheetsService {
     });
   }
 
+  // Append a new production order row to COMMANDES 2025
+  // Columns: A=DATE COMMANDE, B=CLIENT, C=MODELE, D=CENTRE, E=OFFSET, F=MAIN, G=SHAFT,
+  //          H=TAILLE, I=GRIP, J=COULEUR, K=MIRE, L=COULEUR POIDS, M=FACE, N=POIDS,
+  //          O=REGLAGE, P=ADRESSE, Q=COMMANDE, R=ASSEMBLAGE, S=EXPEDITION,
+  //          T=DATE EXPEDITION, U=Mode expédition, V=Facturation
+  async appendProductionRow(data: {
+    date: string;
+    client: string;
+    modele: string;
+    centre: string;
+    offset: string;
+    main: string;
+    shaft: string;
+    taille: string;
+    grip: string;
+    couleur: string;
+    mire: string;
+    couleurPoids: string;
+    face: string;
+    poids: string;
+    reglage: string;
+    adresse: string;
+    commande: string;
+  }): Promise<void> {
+    const row = [
+      data.date,
+      data.client,
+      data.modele,
+      data.centre,
+      data.offset,
+      data.main,
+      data.shaft,
+      data.taille,
+      data.grip,
+      data.couleur,
+      data.mire,
+      data.couleurPoids,
+      data.face,
+      data.poids,
+      data.reglage,
+      data.adresse,
+      data.commande,
+      '', // ASSEMBLAGE
+      '', // EXPEDITION
+      '', // DATE EXPEDITION
+      '', // Mode expédition
+      '', // Facturation
+    ];
+
+    await this.sheets.spreadsheets.values.append({
+      spreadsheetId: this.spreadsheetId,
+      range: 'COMMANDES 2025!A:V',
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [row] },
+    });
+  }
+
   async updateOrderTracking(orderId: string, trackingNumber: string): Promise<void> {
     try {
       const order = await prisma.order.findUnique({

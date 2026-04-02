@@ -5,7 +5,7 @@ export interface BOMItem {
   category: string;
 }
 
-interface OrderAttrs {
+export interface OrderAttrs {
   modele: string;
   couleur: string;
   face: string;
@@ -19,6 +19,81 @@ interface OrderAttrs {
 
 function norm(s: string) {
   return (s || '').toUpperCase().trim();
+}
+
+// ── Map Shopify line item properties → OrderAttrs ─────────────────────────────
+export function resolveFromShopifyProperties(
+  productTitle: string,
+  properties: Array<{ name: string; value: string }>
+): { attrs: OrderAttrs; missing: string[] } {
+  const prop = (key: string) => {
+    const found = properties.find((p) => p.name.toUpperCase() === key.toUpperCase());
+    return (found?.value || '').trim();
+  };
+
+  const missing: string[] = [];
+  const titleUp = productTitle.toUpperCase();
+
+  // modele + couleur from product title
+  let modele = '';
+  if (titleUp.includes('PRO BLADE') || titleUp.includes('BLADE PRO')) modele = 'PRO BLADE';
+  else if (titleUp.includes('PRO MALLET') || titleUp.includes('MALLET PRO')) modele = 'PRO MALLET';
+  else if (titleUp.includes('BLADE')) modele = 'BLADE';
+  else if (titleUp.includes('MALLET')) modele = 'MALLET';
+  else if (titleUp.includes('ORIGINAL')) modele = 'ORIGINAL';
+  if (!modele) missing.push('modele');
+
+  let couleur = '';
+  if (titleUp.includes('BLACK') || titleUp.includes('NOIR')) couleur = 'BLACK';
+  else if (titleUp.includes('GREY') || titleUp.includes('GRIS') || titleUp.includes('GRAY')) couleur = 'GREY';
+  else if (titleUp.includes('ROUGE') || titleUp.includes('RED')) couleur = 'ROUGE';
+  if (!couleur) missing.push('couleur');
+
+  // face from LOFT ANGLE
+  const face = prop('LOFT ANGLE').replace('°', '').replace('degree', '').trim();
+
+  // mire from SIGHT COLOR
+  const sightColor = prop('SIGHT COLOR').toUpperCase();
+  const mireMap: Record<string, string> = {
+    BLACK: 'NOIR', NOIR: 'NOIR',
+    WHITE: 'BLANC', BLANC: 'BLANC',
+    GREY: 'GRIS', GRAY: 'GRIS', GRIS: 'GRIS',
+    RED: 'ROUGE', ROUGE: 'ROUGE',
+    BLUE: 'BLEU', BLEU: 'BLEU',
+    YELLOW: 'JAUNE', JAUNE: 'JAUNE',
+    PINK: 'ROSE', ROSE: 'ROSE',
+  };
+  const mire = mireMap[sightColor] || sightColor;
+
+  // centre + offset from NECK TYPE + LIE ANGLE
+  // NECK TYPE: "CENTER OFFSET" | "CENTER" | "HEEL OFFSET" | "HEEL"
+  const neckType = prop('NECK TYPE').toUpperCase();
+  const lieAngle = prop('LIE ANGLE').replace('°', '').trim(); // "67" → "67"
+  const centrePrefix = neckType.includes('HEEL') ? 'H' : 'C';
+  const offset = neckType.includes('OFFSET') ? 'OUI' : 'NON';
+  const centre = lieAngle ? `${centrePrefix}${lieAngle}` : '';
+  if (!centre) missing.push('centre (LIE ANGLE manquant)');
+
+  // shaft from SHAFT TYPE
+  const shaftType = prop('SHAFT TYPE').toUpperCase();
+  let shaft = '';
+  if (shaftType.includes('GPS') && shaftType.includes('ROUGE')) shaft = 'GPS ROUGE';
+  else if (shaftType.includes('GPS')) shaft = 'GPS NOIR';
+  else shaft = 'STEEL'; // CT TOUR STEEL, etc.
+
+  // grip from GRIP TYPE
+  const gripType = prop('GRIP TYPE').toUpperCase();
+  let grip = '';
+  if (!gripType || gripType === 'UNGRIP' || gripType === 'NO GRIP') grip = 'UNGRIP';
+  else grip = gripType; // pass raw value, resolveComponents will classify
+
+  // poids from WEIGHTS
+  const poids = prop('WEIGHTS').replace(/\s/g, '').toUpperCase(); // "30g" → "30G"
+
+  return {
+    attrs: { modele, couleur, face, mire, centre, offset, shaft, grip, poids },
+    missing,
+  };
 }
 
 export function resolveComponents(attrs: OrderAttrs): BOMItem[] {
@@ -118,13 +193,24 @@ export function resolveComponents(attrs: OrderAttrs): BOMItem[] {
   // ── 7. Grip ───────────────────────────────────────────────────────
   const grip = norm(attrs.grip);
   if (grip && grip !== 'UNGRIP') {
+    const isGarsen = grip.includes('GARSEN');
     const isMidsize = grip.includes('MIDSIZE') || grip.includes('PISTOL');
-    items.push({
-      sku:      isMidsize ? 'GRIP-MIDSIZE-PISTOL' : 'GRIP-STD',
-      name:     isMidsize ? 'Grip Midsize Pistol' : 'Grip Standard',
-      qty:      1,
-      category: 'grip',
-    });
+    let gripSku: string;
+    let gripName: string;
+    if (isGarsen && isMidsize) {
+      gripSku  = 'GRIP-GARSEN-MIDSIZE-PISTOL';
+      gripName = 'Grip Garsen Quad Tour Midsize Pistol';
+    } else if (isGarsen) {
+      gripSku  = 'GRIP-GARSEN-QUAD-TOUR';
+      gripName = 'Grip Garsen Quad Tour';
+    } else if (isMidsize) {
+      gripSku  = 'GRIP-MIDSIZE-PISTOL';
+      gripName = 'Grip Midsize Pistol';
+    } else {
+      gripSku  = 'GRIP-STD';
+      gripName = 'Grip Standard';
+    }
+    items.push({ sku: gripSku, name: gripName, qty: 1, category: 'grip' });
   }
 
   // ── 8. Cover ──────────────────────────────────────────────────────
@@ -186,9 +272,10 @@ export const ALL_COMPONENTS: Omit<BOMItem, 'qty'>[] = [
   { sku: 'ARRIERE-PRO-MALLET-GREY',    name: 'Arrière Pro Mallet Grey',    category: 'arriere' },
   { sku: 'ARRIERE-PRO-MALLET-BLACK',   name: 'Arrière Pro Mallet Black',   category: 'arriere' },
 
-  // Centres (6)
+  // Centres (7)
   { sku: 'CENTRE-H70',    name: 'Centre H70',    category: 'centre' },
   { sku: 'CENTRE-H72',    name: 'Centre H72',    category: 'centre' },
+  { sku: 'CENTRE-C67',    name: 'Centre C67',    category: 'centre' },
   { sku: 'CENTRE-C71',    name: 'Centre C71',    category: 'centre' },
   { sku: 'CENTRE-C74',    name: 'Centre C74',    category: 'centre' },
   { sku: 'CENTRE-C79',    name: 'Centre C79',    category: 'centre' },
@@ -233,9 +320,11 @@ export const ALL_COMPONENTS: Omit<BOMItem, 'qty'>[] = [
   { sku: 'SHAFT-GPS-ROUGE',      name: 'Shaft GPS Rouge',      category: 'shaft' },
   { sku: 'PIECE-OFFSET-GRAPHITE',name: 'Pièce Offset Graphite',category: 'shaft' },
 
-  // Grips (2)
-  { sku: 'GRIP-STD',           name: 'Grip Standard',      category: 'grip' },
-  { sku: 'GRIP-MIDSIZE-PISTOL',name: 'Grip Midsize Pistol', category: 'grip' },
+  // Grips (4)
+  { sku: 'GRIP-STD',                 name: 'Grip Standard',                    category: 'grip' },
+  { sku: 'GRIP-MIDSIZE-PISTOL',      name: 'Grip Midsize Pistol',              category: 'grip' },
+  { sku: 'GRIP-GARSEN-QUAD-TOUR',    name: 'Grip Garsen Quad Tour',            category: 'grip' },
+  { sku: 'GRIP-GARSEN-MIDSIZE-PISTOL', name: 'Grip Garsen Quad Tour Midsize Pistol', category: 'grip' },
 
   // Covers (4)
   { sku: 'COVER-BLADE-STD',  name: 'Cover Blade STD',  category: 'cover' },
