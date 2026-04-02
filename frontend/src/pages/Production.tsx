@@ -128,9 +128,9 @@ export default function Production() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Factory size={24} className="text-purple-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Production — Commandes 2025</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <Factory size={22} className="text-purple-600 shrink-0" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Production 2025</h1>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['production', 'orders'] })}
@@ -194,8 +194,8 @@ export default function Production() {
           <div className="p-12 text-center text-gray-400">Aucune commande trouvée</div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {/* Header */}
-            <div className="grid grid-cols-[1fr_140px_100px_80px_80px_32px] gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            {/* Desktop header (hidden on mobile) */}
+            <div className="hidden sm:grid grid-cols-[1fr_140px_100px_80px_80px_32px] gap-4 px-6 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span>Référence / Client</span>
               <span>Date</span>
               <span>Modèle</span>
@@ -213,28 +213,43 @@ export default function Production() {
               const shipped = isChecked(get(row, 'EXPEDITION'));
 
               return (
-                <div
-                  key={row._rowIndex}
-                  className="grid grid-cols-[1fr_140px_100px_80px_80px_32px] gap-4 px-6 py-4 items-center hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => setSelected(row)}
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">{ref || '—'}</p>
-                    <p className="text-sm text-gray-500">{client}</p>
+                <div key={row._rowIndex} onClick={() => setSelected(row)} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  {/* Desktop row */}
+                  <div className="hidden sm:grid grid-cols-[1fr_140px_100px_80px_80px_32px] gap-4 px-6 py-4 items-center">
+                    <div>
+                      <p className="font-semibold text-gray-900">{ref || '—'}</p>
+                      <p className="text-sm text-gray-500">{client}</p>
+                    </div>
+                    <span className="text-sm text-gray-600">{date}</span>
+                    <span className="text-sm text-gray-700 truncate">{modele}</span>
+                    <div className="flex justify-center" onClick={(e) => toggleCheck(e, row, 'ASSEMBLAGE', assembled)}>
+                      {assembled ? <CheckCircle2 size={20} className="text-green-500" /> : <Circle size={20} className="text-gray-300 hover:text-gray-400" />}
+                    </div>
+                    <div className="flex justify-center" onClick={(e) => toggleCheck(e, row, 'EXPEDITION', shipped)}>
+                      {shipped ? <CheckCircle2 size={20} className="text-cyan-500" /> : <Circle size={20} className="text-gray-300 hover:text-gray-400" />}
+                    </div>
+                    <ChevronRight size={16} className="text-gray-400" />
                   </div>
-                  <span className="text-sm text-gray-600">{date}</span>
-                  <span className="text-sm text-gray-700 truncate">{modele}</span>
-                  <div className="flex justify-center" onClick={(e) => toggleCheck(e, row, 'ASSEMBLAGE', assembled)}>
-                    {assembled
-                      ? <CheckCircle2 size={20} className="text-green-500" />
-                      : <Circle size={20} className="text-gray-300 hover:text-gray-400" />}
+
+                  {/* Mobile row */}
+                  <div className="sm:hidden flex items-center gap-3 px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 text-sm">{ref || '—'}</p>
+                      <p className="text-xs text-gray-500 truncate">{client}{modele ? ` · ${modele}` : ''}</p>
+                      {date && <p className="text-xs text-gray-400 mt-0.5">{date}</p>}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex flex-col items-center gap-0.5" onClick={(e) => toggleCheck(e, row, 'ASSEMBLAGE', assembled)}>
+                        {assembled ? <CheckCircle2 size={20} className="text-green-500" /> : <Circle size={20} className="text-gray-300" />}
+                        <span className="text-[10px] text-gray-400">Assemblé</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5" onClick={(e) => toggleCheck(e, row, 'EXPEDITION', shipped)}>
+                        {shipped ? <CheckCircle2 size={20} className="text-cyan-500" /> : <Circle size={20} className="text-gray-300" />}
+                        <span className="text-[10px] text-gray-400">Expédié</span>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-300" />
+                    </div>
                   </div>
-                  <div className="flex justify-center" onClick={(e) => toggleCheck(e, row, 'EXPEDITION', shipped)}>
-                    {shipped
-                      ? <CheckCircle2 size={20} className="text-cyan-500" />
-                      : <Circle size={20} className="text-gray-300 hover:text-gray-400" />}
-                  </div>
-                  <ChevronRight size={16} className="text-gray-400" />
                 </div>
               );
             })}
@@ -301,7 +316,7 @@ function DetailPanel({
 
       {/* Panel */}
       <div
-        className="w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
+        className="w-full sm:max-w-lg bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

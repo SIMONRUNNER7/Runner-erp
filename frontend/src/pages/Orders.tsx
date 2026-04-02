@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, RefreshCw, Plus, Filter } from 'lucide-react';
+import { Search, RefreshCw, Plus } from 'lucide-react';
 import { ordersApi } from '../lib/api';
 import DataTable, { Column } from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
@@ -49,8 +49,9 @@ export default function Orders() {
       key: 'shopifyNumber',
       label: 'Commande',
       sortable: true,
+      mobilePrimary: true,
       render: (val, row) => (
-        <span className="font-medium text-blue-600">
+        <span className="font-medium text-gray-900">
           {(val as string) || `#${(row.id as string).slice(0, 8)}`}
         </span>
       ),
@@ -67,6 +68,7 @@ export default function Orders() {
     {
       key: 'items',
       label: 'Articles',
+      mobileHide: true,
       render: (_val, row) => {
         const items = row.items as Array<{ quantity: number }> | undefined;
         const qty = items?.reduce((sum, i) => sum + i.quantity, 0) || 0;
@@ -87,26 +89,27 @@ export default function Orders() {
     {
       key: 'trackingNumber',
       label: 'Tracking',
+      mobileHide: true,
       render: (val) => val ? <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{val as string}</span> : <span className="text-gray-400">—</span>,
     },
     {
       key: 'createdAt',
       label: 'Date',
       sortable: true,
-      render: (val) => format(new Date(val as string), 'dd/MM/yyyy HH:mm'),
+      render: (val) => format(new Date(val as string), 'dd/MM/yyyy'),
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Commandes</h1>
           <p className="text-gray-500 text-sm mt-1">
             {data?.pagination?.total || 0} commandes au total
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canAccess(['president', 'commercial']) && (
             <>
               <button
@@ -151,19 +154,16 @@ export default function Orders() {
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter size={16} className="text-gray-400" />
-            <select
-              className="input w-auto"
-              value={status}
-              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            >
-              <option value="">Tous les statuts</option>
-              {ORDER_STATUSES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            className="input w-auto"
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          >
+            <option value="">Tous statuts</option>
+            {ORDER_STATUSES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
       </div>
 

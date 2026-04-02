@@ -210,7 +210,7 @@ export default function Stock() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       <div className="card overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-gray-400 gap-2">
@@ -223,83 +223,87 @@ export default function Stock() {
             Aucun composant trouvé
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-500">SKU / Nom</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Catégorie</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500">Fournisseur</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Stock</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Min</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500">Coût unit.</th>
-                {canEdit && (
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+          <>
+            {/* ── Desktop table ── */}
+            <table className="hidden sm:table w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">SKU / Nom</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Catégorie</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Fournisseur</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Stock</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Min</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Coût unit.</th>
+                  {canEdit && <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.map((c) => {
+                  const isLow = c.stock < c.minStock;
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-gray-900">{c.name}</p>
+                        <p className="text-xs text-gray-400 font-mono">{c.sku}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="badge bg-gray-100 text-gray-700">{CATEGORY_LABELS[c.category] || c.category}</span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{c.supplier?.name || <span className="text-gray-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className={`font-semibold ${isLow ? 'text-orange-600' : 'text-gray-900'}`}>{c.stock}</span>
+                        {isLow && <AlertTriangle size={13} className="inline ml-1 text-orange-400" />}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-500">{c.minStock}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">
+                        {c.unitCost > 0 ? formatCurrency(c.unitCost) : <span className="text-gray-300">—</span>}
+                      </td>
+                      {canEdit && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button className="btn btn-secondary btn-sm" onClick={() => setAdjustForm({ componentId: c.id, componentName: c.name, type: 'in', quantity: 0, reason: '' })}>Ajuster</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setEditForm({ componentId: c.id, minStock: c.minStock, unitCost: c.unitCost, supplierId: c.supplierId || '' })}>Éditer</button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* ── Mobile cards ── */}
+            <div className="sm:hidden divide-y divide-gray-100">
               {filtered.map((c) => {
                 const isLow = c.stock < c.minStock;
                 return (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{c.name}</p>
-                      <p className="text-xs text-gray-400 font-mono">{c.sku}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="badge bg-gray-100 text-gray-700">
-                        {CATEGORY_LABELS[c.category] || c.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {c.supplier?.name || <span className="text-gray-300">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <span className={`font-semibold ${isLow ? 'text-orange-600' : 'text-gray-900'}`}>
-                        {c.stock}
-                      </span>
-                      {isLow && (
-                        <AlertTriangle size={13} className="inline ml-1 text-orange-400" />
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-500">{c.minStock}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">
-                      {c.unitCost > 0 ? formatCurrency(c.unitCost) : <span className="text-gray-300">—</span>}
-                    </td>
+                  <div key={c.id} className="px-4 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 text-sm truncate">{c.name}</p>
+                        {isLow && <AlertTriangle size={13} className="text-orange-400 shrink-0" />}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        <span className="text-xs text-gray-400 font-mono">{c.sku}</span>
+                        <span className="badge bg-gray-100 text-gray-600 text-xs">{CATEGORY_LABELS[c.category] || c.category}</span>
+                        {c.supplier && <span className="text-xs text-gray-500">{c.supplier.name}</span>}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`font-bold text-lg leading-none ${isLow ? 'text-orange-600' : 'text-gray-900'}`}>{c.stock}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">min {c.minStock}</p>
+                    </div>
                     {canEdit && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => setAdjustForm({
-                              componentId: c.id,
-                              componentName: c.name,
-                              type: 'in',
-                              quantity: 0,
-                              reason: '',
-                            })}
-                          >
-                            Ajuster
-                          </button>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => setEditForm({
-                              componentId: c.id,
-                              minStock: c.minStock,
-                              unitCost: c.unitCost,
-                              supplierId: c.supplierId || '',
-                            })}
-                          >
-                            Éditer
-                          </button>
-                        </div>
-                      </td>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button className="btn btn-secondary btn-sm text-xs py-1" onClick={() => setAdjustForm({ componentId: c.id, componentName: c.name, type: 'in', quantity: 0, reason: '' })}>+/−</button>
+                        <button className="btn btn-secondary btn-sm text-xs py-1" onClick={() => setEditForm({ componentId: c.id, minStock: c.minStock, unitCost: c.unitCost, supplierId: c.supplierId || '' })}>✎</button>
+                      </div>
                     )}
-                  </tr>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 

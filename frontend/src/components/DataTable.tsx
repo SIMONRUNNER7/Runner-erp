@@ -8,6 +8,8 @@ export interface Column<T> {
   sortable?: boolean;
   render?: (value: unknown, row: T) => React.ReactNode;
   className?: string;
+  mobileHide?: boolean;  // hide this column in mobile card view
+  mobilePrimary?: boolean; // display prominently in card header
 }
 
 interface DataTableProps<T extends Record<string, unknown>> {
@@ -56,9 +58,9 @@ export default function DataTable<T extends Record<string, unknown>>({
     const order = sortKey === key ? sortOrder : localSort?.order;
     if (!isCurrentSort) return <ChevronsUpDown size={14} className="text-gray-400" />;
     return order === 'asc' ? (
-      <ChevronUp size={14} className="text-blue-600" />
+      <ChevronUp size={14} className="text-red-600" />
     ) : (
-      <ChevronDown size={14} className="text-blue-600" />
+      <ChevronDown size={14} className="text-red-600" />
     );
   };
 
@@ -71,36 +73,83 @@ export default function DataTable<T extends Record<string, unknown>>({
     }, obj as unknown);
   };
 
+  const paginationBlock = pagination && pagination.totalPages > 1 && (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 flex-wrap gap-2">
+      <div className="text-xs text-gray-500">
+        {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total}
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => pagination.onPageChange(pagination.page - 1)}
+          disabled={pagination.page === 1}
+          className="btn btn-secondary btn-sm"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+          const page = Math.max(1, Math.min(pagination.totalPages - 4, pagination.page - 2)) + i;
+          return (
+            <button
+              key={page}
+              onClick={() => pagination.onPageChange(page)}
+              className={clsx('btn btn-sm min-w-[2rem]', page === pagination.page ? 'btn-primary' : 'btn-secondary')}
+            >
+              {page}
+            </button>
+          );
+        })}
+        <button
+          onClick={() => pagination.onPageChange(pagination.page + 1)}
+          disabled={pagination.page === pagination.totalPages}
+          className="btn btn-secondary btn-sm"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="table-container">
-        <table className="table">
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th key={col.key}>{col.label}</th>
+      <div>
+        {/* Desktop skeleton */}
+        <div className="hidden sm:block table-container">
+          <table className="table">
+            <thead>
+              <tr>{columns.map((col) => <th key={col.key}>{col.label}</th>)}</tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {columns.map((col) => (
+                    <td key={col.key}><div className="h-4 bg-gray-200 rounded animate-pulse" /></td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i}>
-                {columns.map((col) => (
-                  <td key={col.key}>
-                    <div className="h-4 bg-gray-200 rounded animate-pulse" />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+        {/* Mobile skeleton */}
+        <div className="sm:hidden space-y-2 p-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-3/4" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
+  const primaryCol = columns.find((c) => c.mobilePrimary) || columns[0];
+  const secondaryCol = columns.find((c) => !c.mobilePrimary && !c.mobileHide && c !== primaryCol);
+  const visibleCols = columns.filter((c) => !c.mobileHide && c !== primaryCol && c !== secondaryCol);
+
   return (
     <div>
-      <div className="table-container">
+      {/* ── Desktop table ── */}
+      <div className="hidden sm:block table-container">
         <table className="table">
           <thead>
             <tr>
@@ -121,9 +170,7 @@ export default function DataTable<T extends Record<string, unknown>>({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="text-center py-12 text-gray-400">
-                  {emptyMessage}
-                </td>
+                <td colSpan={columns.length} className="text-center py-12 text-gray-400">{emptyMessage}</td>
               </tr>
             ) : (
               data.map((row, index) => (
@@ -147,46 +194,55 @@ export default function DataTable<T extends Record<string, unknown>>({
         </table>
       </div>
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-          <div className="text-sm text-gray-500">
-            {((pagination.page - 1) * pagination.limit) + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} sur {pagination.total} résultats
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => pagination.onPageChange(pagination.page - 1)}
-              disabled={pagination.page === 1}
-              className="btn btn-secondary btn-sm"
-            >
-              <ChevronLeft size={14} />
-            </button>
-
-            {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-              const page = Math.max(1, Math.min(pagination.totalPages - 4, pagination.page - 2)) + i;
+      {/* ── Mobile card list ── */}
+      <div className="sm:hidden">
+        {data.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 text-sm">{emptyMessage}</div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {data.map((row, index) => {
+              const primaryVal = getNestedValue(row, primaryCol.key);
+              const secondaryVal = secondaryCol ? getNestedValue(row, secondaryCol.key) : undefined;
               return (
-                <button
-                  key={page}
-                  onClick={() => pagination.onPageChange(page)}
+                <div
+                  key={rowKey ? rowKey(row) : index}
                   className={clsx(
-                    'btn btn-sm min-w-[2rem]',
-                    page === pagination.page ? 'btn-primary' : 'btn-secondary'
+                    'px-4 py-3 bg-white flex flex-col gap-1',
+                    onRowClick && 'cursor-pointer active:bg-gray-50'
                   )}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
-                  {page}
-                </button>
+                  {/* Primary + secondary on same row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-medium text-gray-900 text-sm">
+                      {primaryCol.render ? primaryCol.render(primaryVal, row) : String(primaryVal ?? '-')}
+                    </div>
+                    {secondaryCol && (
+                      <div className="text-sm text-gray-500 shrink-0">
+                        {secondaryCol.render ? secondaryCol.render(secondaryVal, row) : String(secondaryVal ?? '-')}
+                      </div>
+                    )}
+                  </div>
+                  {/* Remaining visible columns */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {visibleCols.map((col) => {
+                      const val = getNestedValue(row, col.key);
+                      return (
+                        <span key={col.key} className="text-xs text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-400">{col.label}:</span>
+                          {col.render ? col.render(val, row) : String(val ?? '-')}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
-
-            <button
-              onClick={() => pagination.onPageChange(pagination.page + 1)}
-              disabled={pagination.page === pagination.totalPages}
-              className="btn btn-secondary btn-sm"
-            >
-              <ChevronRight size={14} />
-            </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
+      {paginationBlock}
     </div>
   );
 }
