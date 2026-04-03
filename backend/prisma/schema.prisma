@@ -80,6 +80,70 @@ model RolePermission {
   @@unique([role, module])
 }
 
+// ─── B2B Portal ───────────────────────────────────────────────
+
+model B2BClient {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String
+  company           String
+  name              String
+  phone             String?
+  address           String?
+  discount          Float     @default(0)   // % additional discount on b2b prices
+  approved          Boolean   @default(false)
+  active            Boolean   @default(true)
+  shopifyCustomerId String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  orders            B2BOrder[]
+}
+
+model B2BProduct {
+  id               String   @id @default(uuid())
+  shopifyProductId String?  // null = B2B exclusive (hidden on public store)
+  shopifyVariantId String?
+  title            String
+  sku              String   @unique
+  description      String?
+  b2bPrice         Float    // base B2B price
+  b2bOnly          Boolean  @default(false)
+  active           Boolean  @default(true)
+  imageUrl         String?
+  options          Json?    // available config options
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  orderItems       B2BOrderItem[]
+}
+
+model B2BOrder {
+  id               String        @id @default(uuid())
+  clientId         String
+  client           B2BClient     @relation(fields: [clientId], references: [id])
+  shopifyOrderId   String?       // filled after Shopify draft order created
+  shopifyOrderNumber String?
+  status           String        @default("pending") // pending | confirmed | in_production | shipped | delivered | cancelled
+  totalAmount      Float
+  discount         Float         @default(0)  // client discount % applied
+  notes            String?
+  shippingAddress  String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  items            B2BOrderItem[]
+}
+
+model B2BOrderItem {
+  id          String     @id @default(uuid())
+  orderId     String
+  order       B2BOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     B2BProduct @relation(fields: [productId], references: [id])
+  quantity    Int
+  unitPrice   Float      // price after client discount
+  config      Json?      // putter configuration (model, color, grip, etc.)
+}
+
 model Client {
   id             String    @id @default(uuid())
   shopifyId      String?   @unique

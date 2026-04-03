@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes';
 import settingsRoutes from './settings.routes';
+import b2bRoutes from './b2b.routes';
 import dashboardRoutes from './dashboard.routes';
 import ordersRoutes from './orders.routes';
 import stockRoutes from './stock.routes';
@@ -17,6 +18,7 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/b2b', b2bRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/orders', ordersRoutes);
 router.use('/stock', stockRoutes);
