@@ -1,3 +1,60 @@
+{%- assign lang = request.locale.iso_code -%}
+{%- if lang == 'fr' -%}
+  {%- assign t_title = 'Espace revendeurs' -%}
+  {%- assign t_subtitle = 'Acces a vos tarifs professionnels.' -%}
+  {%- assign t_login_tab = 'Connexion' -%}
+  {%- assign t_register_tab = "Demande d'acces" -%}
+  {%- assign t_email = 'Email' -%}
+  {%- assign t_password = 'Mot de passe' -%}
+  {%- assign t_submit_login = 'Se connecter' -%}
+  {%- assign t_forgot = 'Mot de passe oublie ?' -%}
+  {%- assign t_company = 'Societe *' -%}
+  {%- assign t_name = 'Prenom Nom *' -%}
+  {%- assign t_phone = 'Telephone' -%}
+  {%- assign t_more_info = 'Informations complementaires' -%}
+  {%- assign t_submit_register = 'Envoyer ma demande' -%}
+  {%- assign t_sent = 'Demande envoyee ! Notre equipe vous contactera dans les 48h.' -%}
+  {%- assign t_catalog = 'Voir le catalogue complet' -%}
+  {%- assign t_orders = 'Mes commandes' -%}
+  {%- assign t_not_you = 'Pas vous ?' -%}
+  {%- assign t_logout = 'Se deconnecter' -%}
+  {%- assign t_discount_active = 'Votre remise exclusive est active' -%}
+  {%- assign t_discount_sub = 'appliques automatiquement a la caisse.' -%}
+  {%- assign t_b2b_active = 'Prix professionnels actifs' -%}
+  {%- assign t_b2b_sub = 'Vous beneficiez des tarifs revendeurs Runner Golf.' -%}
+  {%- assign t_pending_title = 'Acces en attente' -%}
+  {%- assign t_pending_body = "n'a pas encore ete approuve." -%}
+  {%- assign t_pending_sub = 'Notre equipe vous contactera dans les 48h.' -%}
+  {%- assign t_conn_error = 'Erreur de connexion. Veuillez reessayer.' -%}
+{%- else -%}
+  {%- assign t_title = 'Wholesale Portal' -%}
+  {%- assign t_subtitle = 'Access your professional pricing.' -%}
+  {%- assign t_login_tab = 'Login' -%}
+  {%- assign t_register_tab = 'Request access' -%}
+  {%- assign t_email = 'Email' -%}
+  {%- assign t_password = 'Password' -%}
+  {%- assign t_submit_login = 'Sign in' -%}
+  {%- assign t_forgot = 'Forgot your password?' -%}
+  {%- assign t_company = 'Company *' -%}
+  {%- assign t_name = 'Full name *' -%}
+  {%- assign t_phone = 'Phone' -%}
+  {%- assign t_more_info = 'Additional information' -%}
+  {%- assign t_submit_register = 'Send request' -%}
+  {%- assign t_sent = 'Request sent! Our team will get back to you within 48h.' -%}
+  {%- assign t_catalog = 'Browse full catalog' -%}
+  {%- assign t_orders = 'My orders' -%}
+  {%- assign t_not_you = 'Not you?' -%}
+  {%- assign t_logout = 'Sign out' -%}
+  {%- assign t_discount_active = 'Your exclusive discount is active' -%}
+  {%- assign t_discount_sub = 'automatically applied at checkout.' -%}
+  {%- assign t_b2b_active = 'Professional pricing active' -%}
+  {%- assign t_b2b_sub = 'You benefit from Runner Golf wholesale rates.' -%}
+  {%- assign t_pending_title = 'Access pending' -%}
+  {%- assign t_pending_body = 'has not been approved yet.' -%}
+  {%- assign t_pending_sub = 'Our team will contact you within 48h.' -%}
+  {%- assign t_conn_error = 'Connection error, please try again.' -%}
+{%- endif -%}
+
 {{ 'b2b-portal.css' | asset_url | stylesheet_tag }}
 
 <div class="b2b-portal-wrapper">
@@ -17,104 +74,97 @@
         <div class="b2b-welcome__header">
           <div class="b2b-welcome__avatar">{{ customer.first_name | slice: 0 | upcase }}</div>
           <div>
-            <h2 class="b2b-welcome__name">Bonjour, {{ customer.first_name }}&nbsp;👋</h2>
+            <h2 class="b2b-welcome__name">{{ customer.first_name }}</h2>
             <p class="b2b-welcome__company">{{ customer.default_address.company }}</p>
           </div>
         </div>
-
         {% if b2b_discount > 0 %}
           <div class="b2b-discount-banner">
             <span class="b2b-discount-badge">-{{ b2b_discount }}%</span>
             <div>
-              <p class="b2b-discount-title">Votre remise exclusive est active</p>
-              <p class="b2b-discount-sub">-{{ b2b_discount }}% appliques automatiquement a la caisse.</p>
+              <p class="b2b-discount-title">{{ t_discount_active }}</p>
+              <p class="b2b-discount-sub">-{{ b2b_discount }}% {{ t_discount_sub }}</p>
             </div>
           </div>
         {% else %}
           <div class="b2b-discount-banner b2b-discount-banner--standard">
             <span class="b2b-discount-badge b2b-discount-badge--standard">B2B</span>
             <div>
-              <p class="b2b-discount-title">Prix professionnels actifs</p>
-              <p class="b2b-discount-sub">Vous beneficiez des tarifs revendeurs Runner Golf.</p>
+              <p class="b2b-discount-title">{{ t_b2b_active }}</p>
+              <p class="b2b-discount-sub">{{ t_b2b_sub }}</p>
             </div>
           </div>
         {% endif %}
-
         <div class="b2b-actions">
-          <a href="/collections/all" class="b2b-btn b2b-btn--primary">Voir le catalogue complet</a>
-          <a href="/account/orders" class="b2b-btn b2b-btn--secondary">Mes commandes</a>
+          <a href="/collections/all" class="b2b-btn b2b-btn--primary">{{ t_catalog }}</a>
+          <a href="/account/orders" class="b2b-btn b2b-btn--secondary">{{ t_orders }}</a>
         </div>
-
-        <p class="b2b-logout-link">Pas vous ? <a href="/account/logout">Se deconnecter</a></p>
+        <p class="b2b-logout-link">{{ t_not_you }} <a href="/account/logout">{{ t_logout }}</a></p>
       </div>
 
     {% else %}
       <div class="b2b-card b2b-pending">
-        <h2>Acces en attente</h2>
-        <p>Votre compte <strong>{{ customer.email }}</strong> n'a pas encore ete approuve.</p>
-        <p>Notre equipe vous contactera dans les 48h.</p>
-        <a href="/account/logout" class="b2b-btn b2b-btn--secondary">Se deconnecter</a>
+        <h2>{{ t_pending_title }}</h2>
+        <p><strong>{{ customer.email }}</strong> {{ t_pending_body }}</p>
+        <p>{{ t_pending_sub }}</p>
+        <a href="/account/logout" class="b2b-btn b2b-btn--secondary">{{ t_logout }}</a>
       </div>
     {% endif %}
 
   {% else %}
     <div class="b2b-auth-container">
       <div class="b2b-auth-header">
-        <h1 class="b2b-auth-title">Espace revendeurs</h1>
-        <p class="b2b-auth-subtitle">Acces a vos tarifs professionnels.</p>
+        <h1 class="b2b-auth-title">{{ t_title }}</h1>
+        <p class="b2b-auth-subtitle">{{ t_subtitle }}</p>
       </div>
 
       <div class="b2b-tabs">
-        <button class="b2b-tab b2b-tab--active" onclick="b2bShowTab('login', this)">Connexion</button>
-        <button class="b2b-tab" onclick="b2bShowTab('register', this)">Demande d'acces</button>
+        <button class="b2b-tab b2b-tab--active" onclick="b2bShowTab('login', this)">{{ t_login_tab }}</button>
+        <button class="b2b-tab" onclick="b2bShowTab('register', this)">{{ t_register_tab }}</button>
       </div>
 
       <div id="b2b-tab-login" class="b2b-tab-panel">
         {% form 'customer_login', return_to: '/pages/b2b-portal' %}
           {{ form.errors | default_errors }}
           <div class="b2b-field">
-            <label for="b2b-email">Email</label>
+            <label for="b2b-email">{{ t_email }}</label>
             <input type="email" name="customer[email]" id="b2b-email" placeholder="contact@boutique.fr" autocomplete="email" required />
           </div>
           <div class="b2b-field">
-            <label for="b2b-password">Mot de passe</label>
+            <label for="b2b-password">{{ t_password }}</label>
             <input type="password" name="customer[password]" id="b2b-password" placeholder="..." autocomplete="current-password" required />
           </div>
-          <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">Se connecter</button>
-          <p class="b2b-form-note"><a href="/account/reset_password">Mot de passe oublie ?</a></p>
+          <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">{{ t_submit_login }}</button>
+          <p class="b2b-form-note"><a href="/account/reset_password">{{ t_forgot }}</a></p>
         {% endform %}
       </div>
 
       <div id="b2b-tab-register" class="b2b-tab-panel" style="display:none">
-        {% form 'contact', return_to: '/pages/b2b-portal?sent=true' %}
-          {{ form.errors | default_errors }}
-          {% if form.posted_successfully? %}
-            <p class="b2b-success">Demande envoyee ! Notre equipe vous contactera dans les 48h.</p>
-          {% else %}
-            <input type="hidden" name="contact[tags]" value="b2b-request" />
-            <div class="b2b-field">
-              <label for="b2b-reg-company">Societe *</label>
-              <input type="text" name="contact[company]" id="b2b-reg-company" placeholder="Ma Boutique Golf" required />
-            </div>
-            <div class="b2b-field">
-              <label for="b2b-reg-name">Prenom Nom *</label>
-              <input type="text" name="contact[name]" id="b2b-reg-name" placeholder="Jean Dupont" required />
-            </div>
-            <div class="b2b-field">
-              <label for="b2b-reg-email">Email *</label>
-              <input type="email" name="contact[email]" id="b2b-reg-email" placeholder="contact@boutique.fr" required />
-            </div>
-            <div class="b2b-field">
-              <label for="b2b-reg-phone">Telephone</label>
-              <input type="tel" name="contact[phone]" id="b2b-reg-phone" placeholder="+33 6 12 34 56 78" />
-            </div>
-            <div class="b2b-field">
-              <label for="b2b-reg-message">Informations complementaires</label>
-              <textarea name="contact[body]" id="b2b-reg-message" rows="3" placeholder="Decrivez votre activite..."></textarea>
-            </div>
-            <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">Envoyer ma demande</button>
-          {% endif %}
-        {% endform %}
+        <form id="b2b-register-form">
+          <div class="b2b-field">
+            <label for="b2b-reg-company">{{ t_company }}</label>
+            <input type="text" id="b2b-reg-company" placeholder="Runner Golf Paris" required />
+          </div>
+          <div class="b2b-field">
+            <label for="b2b-reg-name">{{ t_name }}</label>
+            <input type="text" id="b2b-reg-name" placeholder="Jean Dupont" required />
+          </div>
+          <div class="b2b-field">
+            <label for="b2b-reg-email">{{ t_email }} *</label>
+            <input type="email" id="b2b-reg-email" placeholder="contact@boutique.fr" required />
+          </div>
+          <div class="b2b-field">
+            <label for="b2b-reg-phone">{{ t_phone }}</label>
+            <input type="tel" id="b2b-reg-phone" placeholder="+33 6 12 34 56 78" />
+          </div>
+          <div class="b2b-field">
+            <label for="b2b-reg-message">{{ t_more_info }}</label>
+            <textarea id="b2b-reg-message" rows="3" placeholder="..."></textarea>
+          </div>
+          <p id="b2b-reg-error" style="color:#dc2626;font-size:0.85rem;margin-bottom:0.5rem;display:none"></p>
+          <p id="b2b-reg-success" class="b2b-success" style="display:none">{{ t_sent }}</p>
+          <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">{{ t_submit_register }}</button>
+        </form>
       </div>
     </div>
   {% endif %}
@@ -130,6 +180,46 @@
   }
   if (window.location.search.indexOf('register=true') !== -1) {
     b2bShowTab('register', document.querySelectorAll('.b2b-tab')[1]);
+  }
+
+  var regForm = document.getElementById('b2b-register-form');
+  if (regForm) {
+    regForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var btn = this.querySelector('button[type=submit]');
+      var err = document.getElementById('b2b-reg-error');
+      var ok = document.getElementById('b2b-reg-success');
+      btn.disabled = true;
+      err.style.display = 'none';
+      ok.style.display = 'none';
+      try {
+        var res = await fetch('https://erp.runner.golf/api/b2b/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            company: document.getElementById('b2b-reg-company').value,
+            name: document.getElementById('b2b-reg-name').value,
+            email: document.getElementById('b2b-reg-email').value,
+            phone: document.getElementById('b2b-reg-phone').value,
+            notes: document.getElementById('b2b-reg-message').value,
+            password: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+          })
+        });
+        if (res.ok) {
+          regForm.style.display = 'none';
+          ok.style.display = 'block';
+        } else {
+          var data = await res.json();
+          err.textContent = data.error || 'Erreur';
+          err.style.display = 'block';
+          btn.disabled = false;
+        }
+      } catch(e) {
+        err.textContent = '{{ t_conn_error }}';
+        err.style.display = 'block';
+        btn.disabled = false;
+      }
+    });
   }
 </script>
 
