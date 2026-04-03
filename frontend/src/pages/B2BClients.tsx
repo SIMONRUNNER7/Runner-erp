@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { b2bAdminApi } from '../lib/api';
-import { Plus, Edit2, Trash2, CheckCircle, XCircle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Edit2, Trash2, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface B2BClient {
