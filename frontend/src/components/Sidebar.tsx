@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   Factory,
+  Store,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAuthStore, UserRole } from '../store/auth.store';
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
   { to: '/invoices', label: 'Factures', icon: FileText, roles: ['president', 'commercial', 'comptable'] },
   { to: '/clients', label: 'Clients', icon: Users, roles: ['president', 'commercial', 'comptable'] },
   { to: '/suppliers', label: 'Fournisseurs', icon: Truck, roles: ['president', 'achats', 'production'] },
+  { to: '/b2b-clients', label: 'Clients B2B', icon: Store, roles: ['president', 'commercial'] },
   { to: '/alerts', label: 'Alertes', icon: Bell, roles: ['president', 'commercial', 'production', 'achats', 'comptable'] },
   { to: '/automations', label: 'Automatisations', icon: Zap, roles: ['president'] },
   { to: '/settings', label: 'Paramètres', icon: Settings, roles: ['president'] },

@@ -51,6 +51,21 @@ export const settingsApi = {
   updatePermissions: (data: object) => api.put('/settings/permissions', data),
 };
 
+export const b2bAdminApi = {
+  // Clients
+  listClients: () => api.get('/b2b/admin/clients'),
+  createClient: (data: object) => api.post('/b2b/admin/clients', data),
+  updateClient: (id: string, data: object) => api.put(`/b2b/admin/clients/${id}`, data),
+  deleteClient: (id: string) => api.delete(`/b2b/admin/clients/${id}`),
+  // Products
+  listProducts: () => api.get('/b2b/admin/products'),
+  createProduct: (data: object) => api.post('/b2b/admin/products', data),
+  updateProduct: (id: string, data: object) => api.put(`/b2b/admin/products/${id}`, data),
+  deleteProduct: (id: string) => api.delete(`/b2b/admin/products/${id}`),
+  // Orders
+  listOrders: () => api.get('/b2b/admin/orders'),
+};
+
 export const dashboardApi = {
   get: () => api.get('/dashboard'),
 };

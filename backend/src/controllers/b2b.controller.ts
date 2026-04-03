@@ -266,9 +266,22 @@ export const adminCreateB2BClient = async (req: AuthRequest, res: Response): Pro
     const existing = await prisma.b2BClient.findUnique({ where: { email } });
     if (existing) { res.status(409).json({ error: 'Email déjà utilisé' }); return; }
     const hashed = await bcrypt.hash(password, 12);
+    const discountValue = discount || 0;
+
+    // Create Shopify customer with B2B tags
+    let shopifyCustomerId: string | undefined;
+    try {
+      const shopifyCustomer = await syncShopifyCustomer({ email, name, company, phone, discount: discountValue });
+      if (shopifyCustomer?.customer?.id) {
+        shopifyCustomerId = String(shopifyCustomer.customer.id);
+      }
+    } catch (shopifyErr) {
+      logger.error('Failed to create Shopify customer:', shopifyErr);
+    }
+
     const client = await prisma.b2BClient.create({
-      data: { email, password: hashed, name, company, phone, discount: discount || 0, notes, approved: true, active: true },
-      select: { id: true, email: true, name: true, company: true, discount: true, approved: true, active: true },
+      data: { email, password: hashed, name, company, phone, discount: discountValue, notes, approved: true, active: true, shopifyCustomerId },
+      select: { id: true, email: true, name: true, company: true, discount: true, approved: true, active: true, shopifyCustomerId: true },
     });
     res.status(201).json(client);
   } catch (err) {
@@ -289,10 +302,37 @@ export const adminUpdateB2BClient = async (req: AuthRequest, res: Response): Pro
     if (active !== undefined) data.active = active;
     if (notes !== undefined) data.notes = notes;
     if (password) data.password = await bcrypt.hash(password, 12);
+
+    // Sync Shopify customer tags if discount or active status changed
+    if (discount !== undefined || active !== undefined || approved !== undefined) {
+      try {
+        const existing = await prisma.b2BClient.findUnique({ where: { id } });
+        if (existing) {
+          const updatedDiscount = discount !== undefined ? discount : existing.discount;
+          const updatedActive = active !== undefined ? active : existing.active;
+          const updatedApproved = approved !== undefined ? approved : existing.approved;
+          if (existing.shopifyCustomerId) {
+            await updateShopifyCustomerTags(existing.shopifyCustomerId, updatedDiscount, updatedActive && updatedApproved);
+          } else if (updatedActive && updatedApproved) {
+            const shopifyCustomer = await syncShopifyCustomer({
+              email: existing.email, name: existing.name,
+              company: existing.company, phone: existing.phone || undefined,
+              discount: updatedDiscount,
+            });
+            if (shopifyCustomer?.customer?.id) {
+              data.shopifyCustomerId = String(shopifyCustomer.customer.id);
+            }
+          }
+        }
+      } catch (shopifyErr) {
+        logger.error('Failed to sync Shopify customer on update:', shopifyErr);
+      }
+    }
+
     const client = await prisma.b2BClient.update({
       where: { id },
       data,
-      select: { id: true, email: true, name: true, company: true, discount: true, approved: true, active: true },
+      select: { id: true, email: true, name: true, company: true, discount: true, approved: true, active: true, shopifyCustomerId: true },
     });
     res.json(client);
   } catch (err) {
@@ -362,6 +402,68 @@ export const adminDeleteB2BProduct = async (req: AuthRequest, res: Response): Pr
     res.status(500).json({ error: 'Erreur serveur' });
   }
 };
+
+// ─── Shopify customer sync helpers ───────────────────────────────
+
+function b2bTags(discount: number, active = true): string {
+  const tags = ['b2b'];
+  if (active && discount > 0) tags.push(`b2b-${discount}`);
+  return tags.join(', ');
+}
+
+async function syncShopifyCustomer(data: { email: string; name: string; company: string; phone?: string; discount: number }) {
+  const shop = process.env.SHOPIFY_SHOP_DOMAIN;
+  const token = process.env.SHOPIFY_ACCESS_TOKEN;
+  if (!shop || !token) return null;
+
+  const [firstName, ...rest] = data.name.split(' ');
+  const lastName = rest.join(' ') || data.company;
+
+  // Check if customer already exists
+  const searchRes = await axios.get(
+    `https://${shop}/admin/api/2024-01/customers/search.json?query=email:${encodeURIComponent(data.email)}`,
+    { headers: { 'X-Shopify-Access-Token': token } }
+  );
+  const existing = searchRes.data.customers?.[0];
+
+  if (existing) {
+    const updateRes = await axios.put(
+      `https://${shop}/admin/api/2024-01/customers/${existing.id}.json`,
+      { customer: { id: existing.id, tags: b2bTags(data.discount), note: `B2B client — ${data.company}` } },
+      { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } }
+    );
+    return updateRes.data;
+  }
+
+  const createRes = await axios.post(
+    `https://${shop}/admin/api/2024-01/customers.json`,
+    {
+      customer: {
+        first_name: firstName,
+        last_name: lastName,
+        email: data.email,
+        phone: data.phone,
+        tags: b2bTags(data.discount),
+        note: `B2B client — ${data.company}`,
+        verified_email: true,
+        send_email_welcome: false,
+      },
+    },
+    { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } }
+  );
+  return createRes.data;
+}
+
+async function updateShopifyCustomerTags(shopifyCustomerId: string, discount: number, active: boolean) {
+  const shop = process.env.SHOPIFY_SHOP_DOMAIN;
+  const token = process.env.SHOPIFY_ACCESS_TOKEN;
+  if (!shop || !token) return;
+  await axios.put(
+    `https://${shop}/admin/api/2024-01/customers/${shopifyCustomerId}.json`,
+    { customer: { id: shopifyCustomerId, tags: b2bTags(discount, active) } },
+    { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } }
+  );
+}
 
 export const adminListB2BOrders = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
