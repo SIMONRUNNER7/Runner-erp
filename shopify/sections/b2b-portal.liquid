@@ -2,12 +2,10 @@
 {%- if lang == 'fr' -%}
   {%- assign t_title = 'Espace revendeurs' -%}
   {%- assign t_subtitle = 'Acces a vos tarifs professionnels.' -%}
-  {%- assign t_login_tab = 'Connexion' -%}
+  {%- assign t_login_btn = 'Se connecter a mon compte' -%}
+  {%- assign t_or = 'ou' -%}
   {%- assign t_register_tab = "Demande d'acces" -%}
   {%- assign t_email = 'Email' -%}
-  {%- assign t_password = 'Mot de passe' -%}
-  {%- assign t_submit_login = 'Se connecter' -%}
-  {%- assign t_forgot = 'Mot de passe oublie ?' -%}
   {%- assign t_company = 'Societe *' -%}
   {%- assign t_name = 'Prenom Nom *' -%}
   {%- assign t_phone = 'Telephone' -%}
@@ -29,12 +27,10 @@
 {%- else -%}
   {%- assign t_title = 'Wholesale Portal' -%}
   {%- assign t_subtitle = 'Access your professional pricing.' -%}
-  {%- assign t_login_tab = 'Login' -%}
+  {%- assign t_login_btn = 'Sign in to my account' -%}
+  {%- assign t_or = 'or' -%}
   {%- assign t_register_tab = 'Request access' -%}
   {%- assign t_email = 'Email' -%}
-  {%- assign t_password = 'Password' -%}
-  {%- assign t_submit_login = 'Sign in' -%}
-  {%- assign t_forgot = 'Forgot your password?' -%}
   {%- assign t_company = 'Company *' -%}
   {%- assign t_name = 'Full name *' -%}
   {%- assign t_phone = 'Phone' -%}
@@ -118,28 +114,13 @@
         <p class="b2b-auth-subtitle">{{ t_subtitle }}</p>
       </div>
 
-      <div class="b2b-tabs">
-        <button class="b2b-tab b2b-tab--active" onclick="b2bShowTab('login', this)">{{ t_login_tab }}</button>
-        <button class="b2b-tab" onclick="b2bShowTab('register', this)">{{ t_register_tab }}</button>
-      </div>
+      <a href="/account/login?return_url=/pages/b2b-portal" class="b2b-btn b2b-btn--secondary b2b-btn--full">{{ t_login_btn }}</a>
 
-      <div id="b2b-tab-login" class="b2b-tab-panel">
-        {% form 'customer_login', return_to: '/pages/b2b-portal' %}
-          {{ form.errors | default_errors }}
-          <div class="b2b-field">
-            <label for="b2b-email">{{ t_email }}</label>
-            <input type="email" name="customer[email]" id="b2b-email" placeholder="contact@boutique.fr" autocomplete="email" required />
-          </div>
-          <div class="b2b-field">
-            <label for="b2b-password">{{ t_password }}</label>
-            <input type="password" name="customer[password]" id="b2b-password" placeholder="..." autocomplete="current-password" required />
-          </div>
-          <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">{{ t_submit_login }}</button>
-          <p class="b2b-form-note"><a href="/account/reset_password">{{ t_forgot }}</a></p>
-        {% endform %}
-      </div>
+      <div class="b2b-divider"><span>{{ t_or }}</span></div>
 
-      <div id="b2b-tab-register" class="b2b-tab-panel" style="display:none">
+      <p class="b2b-register-label">{{ t_register_tab }}</p>
+
+      <div id="b2b-tab-register" class="b2b-tab-panel">
         <form id="b2b-register-form">
           <div class="b2b-field">
             <label for="b2b-reg-company">{{ t_company }}</label>
@@ -172,16 +153,6 @@
 </div>
 
 <script>
-  function b2bShowTab(tab, btn) {
-    document.querySelectorAll('.b2b-tab-panel').forEach(function(el) { el.style.display = 'none'; });
-    document.querySelectorAll('.b2b-tab').forEach(function(el) { el.classList.remove('b2b-tab--active'); });
-    document.getElementById('b2b-tab-' + tab).style.display = 'block';
-    btn.classList.add('b2b-tab--active');
-  }
-  if (window.location.search.indexOf('register=true') !== -1) {
-    b2bShowTab('register', document.querySelectorAll('.b2b-tab')[1]);
-  }
-
   var regForm = document.getElementById('b2b-register-form');
   if (regForm) {
     regForm.addEventListener('submit', async function(e) {
