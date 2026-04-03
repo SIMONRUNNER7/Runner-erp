@@ -116,9 +116,13 @@
 
       <a href="/account/login?return_url=/pages/b2b-portal" class="b2b-btn b2b-btn--secondary b2b-btn--full">{{ t_login_btn }}</a>
 
-      <div class="b2b-divider"><span>{{ t_or }}</span></div>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin:1.5rem 0;color:#9ca3af;font-size:0.85rem;">
+        <span style="flex:1;height:1px;background:#e5e7eb;display:block"></span>
+        <span>{{ t_or }}</span>
+        <span style="flex:1;height:1px;background:#e5e7eb;display:block"></span>
+      </div>
 
-      <p class="b2b-register-label">{{ t_register_tab }}</p>
+      <p style="text-align:center;font-weight:600;font-size:1.05rem;margin:0 0 1.25rem;color:#111827;">{{ t_register_tab }}</p>
 
       <div id="b2b-tab-register" class="b2b-tab-panel">
         <form id="b2b-register-form">
