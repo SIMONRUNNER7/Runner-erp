@@ -71,6 +71,15 @@ model User {
   alerts         Alert[]
 }
 
+model RolePermission {
+  id     String @id @default(uuid())
+  role   String
+  module String
+  level  String // none | read | write
+
+  @@unique([role, module])
+}
+
 model Client {
   id             String    @id @default(uuid())
   shopifyId      String?   @unique

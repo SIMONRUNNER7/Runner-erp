@@ -46,6 +46,11 @@ export const authApi = {
   deleteUser: (id: string) => api.delete(`/auth/users/${id}`),
 };
 
+export const settingsApi = {
+  getPermissions: () => api.get('/settings/permissions'),
+  updatePermissions: (data: object) => api.put('/settings/permissions', data),
+};
+
 export const dashboardApi = {
   get: () => api.get('/dashboard'),
 };
