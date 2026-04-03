@@ -125,44 +125,44 @@ export default function Production() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 min-w-0">
-          <Factory size={22} className="text-purple-600 shrink-0" />
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Production 2025</h1>
+        <div className="flex items-center gap-2 min-w-0">
+          <Factory size={20} className="text-purple-600 shrink-0" />
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">Production 2025</h1>
         </div>
         <button
           onClick={() => queryClient.invalidateQueries({ queryKey: ['production', 'orders'] })}
-          className="btn btn-secondary btn-sm flex items-center gap-2"
+          className="btn btn-secondary btn-sm flex items-center gap-1.5 shrink-0"
         >
-          <RefreshCw size={15} />
-          Actualiser
+          <RefreshCw size={14} />
+          <span className="hidden sm:inline">Actualiser</span>
         </button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {[
           { label: 'Total', value: stats.total, color: 'text-gray-900', bg: 'bg-gray-50', filter: 'all' },
           { label: 'À assembler', value: stats.todo, color: 'text-blue-700', bg: 'bg-blue-50', filter: 'todo' },
-          { label: 'Assemblé, à expédier', value: stats.inProgress, color: 'text-purple-700', bg: 'bg-purple-50', filter: 'in_progress' },
+          { label: 'À expédier', value: stats.inProgress, color: 'text-purple-700', bg: 'bg-purple-50', filter: 'in_progress' },
           { label: 'Expédiées', value: stats.done, color: 'text-green-700', bg: 'bg-green-50', filter: 'done' },
         ].map((k) => (
           <button
             key={k.label}
             onClick={() => setFilter(k.filter as FilterStatus)}
-            className={`card p-5 text-left transition-all ${k.bg} ${filter === k.filter ? 'ring-2 ring-purple-400' : 'hover:shadow-md'}`}
+            className={`card p-3 sm:p-5 text-left transition-all ${k.bg} ${filter === k.filter ? 'ring-2 ring-purple-400' : 'hover:shadow-md'}`}
           >
-            <p className="text-sm text-gray-500 mb-1">{k.label}</p>
-            <p className={`text-3xl font-bold ${k.color}`}>{k.value}</p>
+            <p className="text-xs sm:text-sm text-gray-500 mb-1 leading-tight">{k.label}</p>
+            <p className={`text-2xl sm:text-3xl font-bold ${k.color}`}>{k.value}</p>
           </button>
         ))}
       </div>
 
       {/* Search + filters */}
-      <div className="card p-4 flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="card p-3 sm:p-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="relative flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="input pl-9 w-full"
@@ -171,12 +171,12 @@ export default function Production() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {([['all', 'Toutes'], ['todo', 'À assembler'], ['in_progress', 'À expédier'], ['done', 'Expédiées']] as [FilterStatus, string][]).map(([val, label]) => (
             <button
               key={val}
               onClick={() => setFilter(val)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === val ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${filter === val ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               {label}
             </button>
@@ -232,22 +232,20 @@ export default function Production() {
                   </div>
 
                   {/* Mobile row */}
-                  <div className="sm:hidden flex items-center gap-3 px-4 py-3">
+                  <div className="sm:hidden flex items-center gap-2 px-3 py-3">
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm">{ref || '—'}</p>
+                      <p className="font-semibold text-gray-900 text-sm leading-snug">{ref || '—'}</p>
                       <p className="text-xs text-gray-500 truncate">{client}{modele ? ` · ${modele}` : ''}</p>
-                      {date && <p className="text-xs text-gray-400 mt-0.5">{date}</p>}
+                      {date && <p className="text-xs text-gray-400">{date}</p>}
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="flex flex-col items-center gap-0.5" onClick={(e) => toggleCheck(e, row, 'ASSEMBLAGE', assembled)}>
-                        {assembled ? <CheckCircle2 size={20} className="text-green-500" /> : <Circle size={20} className="text-gray-300" />}
-                        <span className="text-[10px] text-gray-400">Assemblé</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div onClick={(e) => toggleCheck(e, row, 'ASSEMBLAGE', assembled)} className="p-1">
+                        {assembled ? <CheckCircle2 size={22} className="text-green-500" /> : <Circle size={22} className="text-gray-300" />}
                       </div>
-                      <div className="flex flex-col items-center gap-0.5" onClick={(e) => toggleCheck(e, row, 'EXPEDITION', shipped)}>
-                        {shipped ? <CheckCircle2 size={20} className="text-cyan-500" /> : <Circle size={20} className="text-gray-300" />}
-                        <span className="text-[10px] text-gray-400">Expédié</span>
+                      <div onClick={(e) => toggleCheck(e, row, 'EXPEDITION', shipped)} className="p-1">
+                        {shipped ? <CheckCircle2 size={22} className="text-cyan-500" /> : <Circle size={22} className="text-gray-300" />}
                       </div>
-                      <ChevronRight size={16} className="text-gray-300" />
+                      <ChevronRight size={14} className="text-gray-300" />
                     </div>
                   </div>
                 </div>
