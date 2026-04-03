@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useB2BStore } from './store/b2b.store';
 import Login from './pages/Login';
 import Layout from './pages/Layout';
