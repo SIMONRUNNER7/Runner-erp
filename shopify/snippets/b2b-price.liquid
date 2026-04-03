@@ -1,0 +1,43 @@
+{% comment %}
+  Snippet: b2b-price.liquid
+  Shows the B2B discounted price on product pages for logged-in B2B customers.
+
+  Usage — add this to your product template (sections/main-product.liquid or similar),
+  just after the regular price display block:
+
+    {% render 'b2b-price', product: product, variant: product.selected_or_first_available_variant %}
+
+  Or inside a variant change JS callback, re-render with the selected variant.
+{% endcomment %}
+
+{% if customer %}
+  {%- assign b2b_discount = 0 -%}
+  {%- assign is_b2b = false -%}
+  {%- for tag in customer.tags -%}
+    {%- if tag == 'b2b' -%}{%- assign is_b2b = true -%}{%- endif -%}
+    {%- if tag contains 'b2b-' -%}
+      {%- assign b2b_discount = tag | remove: 'b2b-' | times: 1 -%}
+    {%- endif -%}
+  {%- endfor -%}
+
+  {% if is_b2b %}
+    {%- assign base_price = variant.price | default: product.selected_or_first_available_variant.price -%}
+    {%- assign b2b_price_cents = base_price | times: (100 | minus: b2b_discount) | divided_by: 100 -%}
+
+    <div class="b2b-product-price" id="b2b-product-price">
+      <div class="b2b-product-price__label">
+        <span class="b2b-product-price__badge">Votre prix B2B</span>
+        {% if b2b_discount > 0 %}
+          <span class="b2b-product-price__discount">−{{ b2b_discount }}%</span>
+        {% endif %}
+      </div>
+      <div class="b2b-product-price__amount">
+        {{ b2b_price_cents | money }}
+        {% if b2b_discount > 0 %}
+          <span class="b2b-product-price__original">{{ base_price | money }}</span>
+        {% endif %}
+      </div>
+      <p class="b2b-product-price__note">Remise appliquée automatiquement à la caisse.</p>
+    </div>
+  {% endif %}
+{% endif %}

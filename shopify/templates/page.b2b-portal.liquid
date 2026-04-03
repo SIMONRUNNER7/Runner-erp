@@ -1,0 +1,175 @@
+{% comment %}
+  Template: page.b2b-portal.liquid
+  URL: /pages/b2b-portal
+
+  To activate: in Shopify admin → Online Store → Themes → Edit code
+  → templates/ → Add a new template → page → name it "b2b-portal"
+  → paste this file content
+  Then, in the page editor for "B2B Portal", select template "b2b-portal"
+{% endcomment %}
+
+{{ 'b2b-portal.css' | asset_url | stylesheet_tag }}
+
+<div class="b2b-portal-wrapper">
+
+  {% if customer %}
+    {%- assign is_b2b = false -%}
+    {%- assign b2b_discount = 0 -%}
+    {%- for tag in customer.tags -%}
+      {%- if tag == 'b2b' -%}{%- assign is_b2b = true -%}{%- endif -%}
+      {%- if tag contains 'b2b-' -%}
+        {%- assign b2b_discount = tag | remove: 'b2b-' | times: 1 -%}
+      {%- endif -%}
+    {%- endfor -%}
+
+    {% if is_b2b %}
+      {%- comment -%} ── Logged in + approved B2B client ── {%- endcomment -%}
+      <div class="b2b-welcome">
+        <div class="b2b-welcome__header">
+          <div class="b2b-welcome__avatar">{{ customer.first_name | slice: 0 | upcase }}</div>
+          <div>
+            <h2 class="b2b-welcome__name">Bonjour, {{ customer.first_name }}&nbsp;👋</h2>
+            <p class="b2b-welcome__company">{{ customer.default_address.company }}</p>
+          </div>
+        </div>
+
+        {% if b2b_discount > 0 %}
+          <div class="b2b-discount-banner">
+            <span class="b2b-discount-badge">−{{ b2b_discount }}%</span>
+            <div>
+              <p class="b2b-discount-title">Votre remise exclusive est active</p>
+              <p class="b2b-discount-sub">−{{ b2b_discount }}% appliqués automatiquement à la caisse sur tous vos achats.</p>
+            </div>
+          </div>
+        {% else %}
+          <div class="b2b-discount-banner b2b-discount-banner--standard">
+            <span class="b2b-discount-badge b2b-discount-badge--standard">B2B</span>
+            <div>
+              <p class="b2b-discount-title">Prix professionnels actifs</p>
+              <p class="b2b-discount-sub">Vous bénéficiez des tarifs revendeurs Runner Golf.</p>
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="b2b-actions">
+          <a href="/collections/all" class="b2b-btn b2b-btn--primary">
+            Voir le catalogue complet →
+          </a>
+          <a href="/account/orders" class="b2b-btn b2b-btn--secondary">
+            Mes commandes
+          </a>
+        </div>
+
+        <p class="b2b-logout-link">
+          Pas vous ? <a href="/account/logout">Se déconnecter</a>
+        </p>
+      </div>
+
+    {% else %}
+      {%- comment -%} ── Logged in but not a B2B client ── {%- endcomment -%}
+      <div class="b2b-card b2b-pending">
+        <div class="b2b-pending__icon">⏳</div>
+        <h2>Accès en attente</h2>
+        <p>Votre compte <strong>{{ customer.email }}</strong> n'a pas encore été approuvé pour l'accès revendeur.</p>
+        <p>Notre équipe vous contactera dans les 48h ouvrées.</p>
+        <a href="/account/logout" class="b2b-btn b2b-btn--secondary">Se déconnecter</a>
+      </div>
+    {% endif %}
+
+  {% else %}
+    {%- comment -%} ── Not logged in ── {%- endcomment -%}
+    <div class="b2b-auth-container">
+      <div class="b2b-auth-header">
+        <h1 class="b2b-auth-title">Espace revendeurs</h1>
+        <p class="b2b-auth-subtitle">Accédez à vos tarifs professionnels et passez vos commandes.</p>
+      </div>
+
+      <div class="b2b-tabs">
+        <button class="b2b-tab b2b-tab--active" onclick="b2bShowTab('login', this)">Connexion</button>
+        <button class="b2b-tab" onclick="b2bShowTab('register', this)">Demande d'accès</button>
+      </div>
+
+      {%- comment -%} Login form {%- endcomment -%}
+      <div id="b2b-tab-login" class="b2b-tab-panel">
+        {% form 'customer_login', return_to: '/pages/b2b-portal' %}
+          {{ form.errors | default_errors }}
+          <div class="b2b-field">
+            <label for="b2b-email">Email</label>
+            <input type="email" name="customer[email]" id="b2b-email"
+              placeholder="contact@votre-boutique.fr" autocomplete="email" required />
+          </div>
+          <div class="b2b-field">
+            <label for="b2b-password">Mot de passe</label>
+            <input type="password" name="customer[password]" id="b2b-password"
+              placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+          <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">Se connecter</button>
+          <p class="b2b-form-note">
+            <a href="/account/reset_password">Mot de passe oublié ?</a>
+          </p>
+        {% endform %}
+      </div>
+
+      {%- comment -%} Registration request form {%- endcomment -%}
+      <div id="b2b-tab-register" class="b2b-tab-panel" style="display:none">
+        {% form 'contact', return_to: '/pages/b2b-portal?sent=true' %}
+          {{ form.errors | default_errors }}
+          {% if request.path contains 'sent=true' or form.posted_successfully? %}
+            <div class="b2b-success">
+              ✅ Demande envoyée ! Notre équipe vous contactera dans les 48h ouvrées.
+            </div>
+          {% else %}
+            <input type="hidden" name="contact[b2b_request]" value="true" />
+            <div class="b2b-field">
+              <label for="b2b-reg-company">Société *</label>
+              <input type="text" name="contact[company]" id="b2b-reg-company"
+                placeholder="Ma Boutique Golf" required />
+            </div>
+            <div class="b2b-fields-row">
+              <div class="b2b-field">
+                <label for="b2b-reg-name">Prénom Nom *</label>
+                <input type="text" name="contact[name]" id="b2b-reg-name"
+                  placeholder="Jean Dupont" required />
+              </div>
+              <div class="b2b-field">
+                <label for="b2b-reg-phone">Téléphone</label>
+                <input type="tel" name="contact[phone]" id="b2b-reg-phone"
+                  placeholder="+33 6 12 34 56 78" />
+              </div>
+            </div>
+            <div class="b2b-field">
+              <label for="b2b-reg-email">Email professionnel *</label>
+              <input type="email" name="contact[email]" id="b2b-reg-email"
+                placeholder="contact@boutique.fr" required />
+            </div>
+            <div class="b2b-field">
+              <label for="b2b-reg-message">Informations complémentaires</label>
+              <textarea name="contact[body]" id="b2b-reg-message" rows="3"
+                placeholder="Décrivez votre activité, volume estimé…"></textarea>
+            </div>
+            <button type="submit" class="b2b-btn b2b-btn--primary b2b-btn--full">
+              Envoyer ma demande
+            </button>
+            <p class="b2b-form-note">Réponse sous 48h ouvrées.</p>
+          {% endif %}
+        {% endform %}
+      </div>
+
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+function b2bShowTab(tab, btn) {
+  document.querySelectorAll('.b2b-tab-panel').forEach(function(el) { el.style.display = 'none'; });
+  document.querySelectorAll('.b2b-tab').forEach(function(el) { el.classList.remove('b2b-tab--active'); });
+  document.getElementById('b2b-tab-' + tab).style.display = 'block';
+  btn.classList.add('b2b-tab--active');
+}
+
+// Open register tab if ?register=true in URL
+if (window.location.search.includes('register=true')) {
+  b2bShowTab('register', document.querySelectorAll('.b2b-tab')[1]);
+}
+</script>

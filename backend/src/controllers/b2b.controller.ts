@@ -443,6 +443,7 @@ async function syncShopifyCustomer(data: { email: string; name: string; company:
         last_name: lastName,
         email: data.email,
         phone: data.phone,
+        company: data.company,
         tags: b2bTags(data.discount),
         note: `B2B client — ${data.company}`,
         verified_email: true,
@@ -451,7 +452,24 @@ async function syncShopifyCustomer(data: { email: string; name: string; company:
     },
     { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } }
   );
+
+  // Send Shopify account invite so client can set their password and log in
+  const newCustomerId = createRes.data?.customer?.id;
+  if (newCustomerId) {
+    await sendShopifyAccountInvite(shop, token, newCustomerId).catch((e) =>
+      logger.warn('Shopify invite email failed:', e?.message)
+    );
+  }
+
   return createRes.data;
+}
+
+async function sendShopifyAccountInvite(shop: string, token: string, customerId: string | number) {
+  await axios.post(
+    `https://${shop}/admin/api/2024-01/customers/${customerId}/send_invite.json`,
+    {},
+    { headers: { 'X-Shopify-Access-Token': token, 'Content-Type': 'application/json' } }
+  );
 }
 
 async function updateShopifyCustomerTags(shopifyCustomerId: string, discount: number, active: boolean) {

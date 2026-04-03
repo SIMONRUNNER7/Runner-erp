@@ -1,0 +1,305 @@
+/* ── B2B Portal styles ─────────────────────────────────────────── */
+
+.b2b-portal-wrapper {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  font-family: inherit;
+}
+
+/* Auth container (login/register) */
+.b2b-auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.b2b-auth-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+.b2b-auth-subtitle {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Tabs */
+.b2b-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+}
+.b2b-tab {
+  flex: 1;
+  padding: 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.b2b-tab--active {
+  color: #111827;
+  border-bottom-color: #111827;
+}
+
+/* Form fields */
+.b2b-field {
+  margin-bottom: 1rem;
+}
+.b2b-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+.b2b-field input,
+.b2b-field textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.b2b-field input:focus,
+.b2b-field textarea:focus {
+  outline: none;
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+.b2b-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 480px) {
+  .b2b-fields-row { grid-template-columns: 1fr; }
+}
+
+/* Buttons */
+.b2b-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+.b2b-btn--primary {
+  background: #111827;
+  color: #fff;
+}
+.b2b-btn--primary:hover {
+  background: #000;
+  color: #fff;
+}
+.b2b-btn--secondary {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+.b2b-btn--secondary:hover {
+  background: #f9fafb;
+  color: #111827;
+}
+.b2b-btn--full {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.b2b-form-note {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.75rem;
+}
+.b2b-form-note a { color: #6b7280; }
+
+/* Welcome page */
+.b2b-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.b2b-welcome__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.b2b-welcome__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #111827;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.b2b-welcome__name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+.b2b-welcome__company {
+  color: #6b7280;
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+}
+
+/* Discount banner */
+.b2b-discount-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+.b2b-discount-banner--standard {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+.b2b-discount-badge {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 0.3rem 0.6rem;
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.b2b-discount-badge--standard {
+  color: #1e40af;
+  background: #dbeafe;
+  font-size: 0.85rem;
+}
+.b2b-discount-title {
+  font-weight: 600;
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+}
+.b2b-discount-sub {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Action buttons */
+.b2b-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.b2b-actions .b2b-btn--primary {
+  flex: 1;
+  min-width: 160px;
+}
+
+.b2b-logout-link {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+.b2b-logout-link a { color: #6b7280; }
+
+/* Pending / card */
+.b2b-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 2rem;
+}
+.b2b-pending {
+  text-align: center;
+}
+.b2b-pending__icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+.b2b-pending h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+.b2b-pending p {
+  color: #6b7280;
+  margin: 0 0 0.5rem;
+}
+
+/* Success message */
+.b2b-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  color: #15803d;
+  font-size: 0.9rem;
+}
+
+/* ── B2B price on product pages ─────────────────────────────────── */
+
+.b2b-product-price {
+  margin-top: 1rem;
+  padding: 0.875rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.625rem;
+}
+.b2b-product-price__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.b2b-product-price__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #15803d;
+}
+.b2b-product-price__discount {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+}
+.b2b-product-price__amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+.b2b-product-price__original {
+  font-size: 1rem;
+  font-weight: 400;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+.b2b-product-price__note {
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
