@@ -407,7 +407,7 @@ export const adminDeleteB2BProduct = async (req: AuthRequest, res: Response): Pr
 
 function b2bTags(discount: number, active = true): string {
   const tags = ['b2b'];
-  if (active && discount > 0) tags.push(`b2b-${discount}`);
+  if (active) tags.push(`b2b-${discount}`);
   return tags.join(', ');
 }
 
