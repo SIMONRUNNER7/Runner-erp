@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface B2BUser {
+export interface B2BUser {
   id: string;
   email: string;
   name: string;

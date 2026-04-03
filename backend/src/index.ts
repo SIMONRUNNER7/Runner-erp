@@ -20,7 +20,7 @@ const httpServer = createServer(app);
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map((o) => o.trim())
-  .concat(['http://localhost:5173']);
+  .concat(['http://localhost:5173', 'http://localhost:5174']);
 
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {

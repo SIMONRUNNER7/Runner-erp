@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/auth.store';
-import { useB2BStore } from './store/b2b.store';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -15,11 +14,6 @@ import Automations from './pages/Automations';
 import Settings from './pages/Settings';
 import Production from './pages/Production';
 import B2BClients from './pages/B2BClients';
-import B2BLogin from './pages/b2b/B2BLogin';
-import B2BLayout from './pages/b2b/B2BLayout';
-import B2BProducts from './pages/b2b/B2BProducts';
-import B2BCartPage from './pages/b2b/B2BCartPage';
-import B2BOrders from './pages/b2b/B2BOrders';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -27,17 +21,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function B2BProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useB2BStore();
-  if (!isAuthenticated) return <Navigate to="/b2b/login" replace />;
-  return <>{children}</>;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ERP */}
         <Route path="/login" element={<Login />} />
         <Route
           path="/"
@@ -61,23 +48,6 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="b2b-clients" element={<B2BClients />} />
         </Route>
-
-        {/* B2B Portal */}
-        <Route path="/b2b/login" element={<B2BLogin />} />
-        <Route
-          path="/b2b"
-          element={
-            <B2BProtectedRoute>
-              <B2BLayout />
-            </B2BProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to="/b2b/products" replace />} />
-          <Route path="products" element={<B2BProducts />} />
-          <Route path="cart" element={<B2BCartPage />} />
-          <Route path="orders" element={<B2BOrders />} />
-        </Route>
-
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,13 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface CartItem {
+export interface CartItem {
   productId: string;
   title: string;
   sku: string;
   quantity: number;
   unitPrice: number;
-  config?: Record<string, string>;
 }
 
 interface CartState {
@@ -18,7 +17,7 @@ interface CartState {
   clear: () => void;
 }
 
-export const useB2BCart = create<CartState>()(
+export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
@@ -36,7 +35,8 @@ export const useB2BCart = create<CartState>()(
             ? state.items.filter((i) => i.productId !== productId)
             : state.items.map((i) => i.productId === productId ? { ...i, quantity } : i),
         })),
-      removeItem: (productId) => set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
+      removeItem: (productId) =>
+        set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
       clear: () => set({ items: [] }),
     }),
     { name: 'b2b-cart' }
