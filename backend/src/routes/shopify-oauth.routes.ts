@@ -105,13 +105,37 @@ router.get('/b2b-payment-callback', async (req: Request, res: Response) => {
     });
     const accessToken: string = tokenRes.data.access_token;
 
+    // Get the real function ID for b2b-payment-filter
+    const functionsQuery = `{ shopifyFunctions(first: 25) { nodes { id title apiType } } }`;
+    const fnRes = await axios.post(
+      `https://${shop}/admin/api/2024-10/graphql.json`,
+      { query: functionsQuery },
+      { headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' } },
+    );
+    const functions: Array<{ id: string; title: string; apiType: string }> =
+      fnRes.data?.data?.shopifyFunctions?.nodes ?? [];
+    const fn = functions.find(
+      (f) => f.apiType === 'payment_customization' || f.title.toLowerCase().includes('b2b'),
+    );
+    if (!fn) {
+      res.status(400).send(`
+        <html><body style="font-family:sans-serif;padding:40px;background:#1a1a2e;color:#ff6b6b">
+          <h2>❌ Fonction introuvable</h2>
+          <p>Functions disponibles :</p>
+          <pre>${JSON.stringify(functions, null, 2)}</pre>
+        </body></html>
+      `);
+      return;
+    }
+    const functionId = fn.id;
+
     // Create PaymentCustomization
     const mutation = `
       mutation {
         paymentCustomizationCreate(paymentCustomization: {
           title: "Hide 30-day payment for non-B2B"
           enabled: true
-          functionId: "${B2B_FUNCTION_ID}"
+          functionId: "${functionId}"
         }) {
           paymentCustomization { id title enabled }
           userErrors { field message }
