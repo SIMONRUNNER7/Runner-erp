@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Calendrier — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <h1>Calendrier</h1>
+    <div class="subtitle">{{ month_label }}</div>
+  </div>
+  <div style="display:flex; gap:8px;">
+    <a class="btn secondary small" href="/calendar?year={{ prev_year }}&month={{ prev_month }}">← Précédent</a>
+    <a class="btn secondary small" href="/calendar?year={{ today_year }}&month={{ today_month }}">Aujourd'hui</a>
+    <a class="btn secondary small" href="/calendar?year={{ next_year }}&month={{ next_month }}">Suivant →</a>
+    <button class="btn small" type="button" id="add-event-btn">+ Événement</button>
+    <a class="btn small" href="/composer">+ Publication</a>
+  </div>
+</div>
+
+<div class="card" id="add-event-form" style="display:none;">
+  <strong>Nouvel événement éditorial</strong>
+  <form method="post" action="/calendar/events/new">
+    <input type="hidden" name="year" value="{{ today_year if not request.query_params.get('year') else request.query_params.get('year') }}">
+    <input type="hidden" name="month" value="{{ today_month if not request.query_params.get('month') else request.query_params.get('month') }}">
+    <div class="grid grid-2">
+      <div>
+        <label>Titre</label>
+        <input type="text" name="title" placeholder="Tournage teaser saison 2026" required>
+      </div>
+      <div>
+        <label>Type</label>
+        <select name="event_type">
+          {% for key, meta in event_types.items() %}
+          <option value="{{ key.value }}">{{ meta.icon }} {{ meta.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <label>Date et heure (heure de Paris)</label>
+    <input type="datetime-local" name="event_date" required>
+    <label>Notes (optionnel)</label>
+    <textarea name="notes" rows="2" placeholder="Lieu, intervenants, matériel nécessaire..."></textarea>
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button class="btn" type="submit">Ajouter</button>
+      <button class="btn secondary" type="button" id="cancel-event-btn">Annuler</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <strong>Légende</strong>
+  <div class="chip-row" style="margin-top:8px;">
+    {% for key, meta in event_types.items() %}
+    <span class="chip"><span style="color:{{ meta.color }};">{{ meta.icon }}</span> {{ meta.label }}</span>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <div style="display:grid; grid-template-columns: repeat(7, 1fr); background:var(--bg); border-bottom:1px solid var(--border);">
+    {% for j in jours_fr %}
+    <div style="padding:8px 10px; font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--muted);">{{ j }}</div>
+    {% endfor %}
+  </div>
+  {% for week in weeks %}
+  <div style="display:grid; grid-template-columns: repeat(7, 1fr);">
+    {% for day in week %}
+    <div style="min-height:110px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); padding:6px; {{ 'background:var(--bg);' if not day.in_month }}">
+      <div style="font-size:0.78rem; font-weight:700; {{ 'color:var(--muted);' if not day.in_month }}">
+        {% if day.is_today %}<span style="background:var(--accent); color:#fff; border-radius:50%; padding:2px 7px;">{{ day.date.day }}</span>{% else %}{{ day.date.day }}{% endif %}
+      </div>
+      {% for item in day.entries[:3] %}
+        {% if item.kind == 'post' %}
+        {% set post = item.obj %}
+        <a href="/posts#post-{{ post.id }}" class="chip" style="display:flex; align-items:center; gap:4px; margin-top:4px; text-decoration:none; overflow:hidden;">
+          {% for t in post.targets[:3] %}
+          <span class="platform-badge" style="width:14px; height:14px; font-size:0.55rem; background:{{ platform_colors[t.platform] }};">{{ t.platform.value[0]|upper }}</span>
+          {% endfor %}
+          <span style="font-size:0.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ (post.caption or 'Story/média')[:20] }}</span>
+        </a>
+        {% else %}
+        {% set event = item.obj %}
+        {% set meta = event_types[event.event_type] %}
+        <div class="chip" style="display:flex; align-items:center; gap:4px; margin-top:4px; overflow:hidden; border-color:{{ meta.color }};" title="{{ event.notes or '' }}">
+          <span>{{ meta.icon }}</span>
+          <span style="font-size:0.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">{{ event.title[:20] }}</span>
+          <form method="post" action="/calendar/events/{{ event.id }}/delete" style="display:inline;" onsubmit="return confirm('Supprimer cet événement ?');">
+            <input type="hidden" name="year" value="{{ day.date.year }}">
+            <input type="hidden" name="month" value="{{ day.date.month }}">
+            <button type="submit" style="border:none; background:none; cursor:pointer; color:var(--muted); font-size:0.7rem;">✕</button>
+          </form>
+        </div>
+        {% endif %}
+      {% endfor %}
+      {% if day.entries|length > 3 %}
+      <div class="helptext" style="margin-top:2px;">+{{ day.entries|length - 3 }} autres</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <p class="helptext">Les publications sont positionnées à leur date/heure planifiée (heure de Paris), ou à
+    leur date de création si publiées immédiatement. Les événements éditoriaux (tournages, séances photo,
+    parutions presse, salons) sont saisis manuellement via "+ Événement" et n'entraînent aucune publication
+    automatique.</p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const addBtn = document.getElementById('add-event-btn');
+const addForm = document.getElementById('add-event-form');
+addBtn.addEventListener('click', () => { addForm.style.display = addForm.style.display === 'none' ? 'block' : 'none'; });
+document.getElementById('cancel-event-btn').addEventListener('click', () => { addForm.style.display = 'none'; });
+</script>
+{% endblock %}

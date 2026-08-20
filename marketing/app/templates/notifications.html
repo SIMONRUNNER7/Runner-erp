@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Notifications</h1>
+  {% if notifications %}
+  <form method="post" action="/notifications/mark-all-read">
+    <button class="btn secondary" type="submit">Tout marquer comme lu</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if not notifications %}
+<div class="card empty-state">Aucune notification pour le moment.</div>
+{% else %}
+<div class="card">
+  {% for n in notifications %}
+  <div class="notif-item {{ 'unread' if not n.read }}">
+    {% if n.platform %}
+    <span class="platform-badge lg" style="background:{{ platform_colors[n.platform] }};">{{ n.platform.value[0]|upper }}</span>
+    {% else %}
+    <span class="platform-badge lg" style="background:var(--ink);">⛳</span>
+    {% endif %}
+    <div class="body">
+      <strong>{{ n.title }}</strong>
+      <div>{{ n.message }}</div>
+      <div class="meta">{{ n.created_at | local }}{% if n.platform %} · {{ platform_labels[n.platform] }}{% endif %}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

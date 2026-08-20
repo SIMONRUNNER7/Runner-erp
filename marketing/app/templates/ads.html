@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Publicités — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <h1>Publicités</h1>
+    <div class="subtitle">Gérez vos campagnes sur tous les réseaux depuis un seul endroit.</div>
+  </div>
+  <a class="btn" href="/ads/new">+ Nouvelle campagne</a>
+</div>
+
+<div class="grid grid-4">
+  <div class="card stat-tile"><div class="value">{{ grand_total.impressions }}</div><div class="label">Impressions</div></div>
+  <div class="card stat-tile"><div class="value">{{ grand_total.clicks }}</div><div class="label">Clics</div></div>
+  <div class="card stat-tile"><div class="value">{{ "%.2f"|format(grand_total.spend) }} €</div><div class="label">Dépensé</div></div>
+  <div class="card stat-tile"><div class="value">{{ grand_total.conversions }}</div><div class="label">Conversions</div></div>
+</div>
+
+{% if not campaign_data %}
+<div class="card empty-state">
+  Aucune campagne pour l'instant. Créez-en une depuis ici, ou en un clic depuis le bouton "Créer une publicité"
+  proposé après chaque publication dans <a href="/posts">Publications</a>.
+</div>
+{% else %}
+{% for d in campaign_data %}
+{% set c = d.campaign %}
+<div class="campaign-card">
+  <span class="platform-badge lg" style="background:{{ platform_colors[c.platform] }};">{{ c.platform.value[0]|upper }}</span>
+  <div class="info">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <strong>{{ c.name }}</strong>
+      <span class="pill {{ c.status.value }}">{{ c.status.value }}</span>
+      {% if c.simulated %}<span class="pill simulated">démo</span>{% endif %}
+      {% if c.post %}<span class="pill connected">🚀 boost</span>{% else %}<span class="pill draft">🎯 campagne</span>{% endif %}
+    </div>
+    <div class="helptext">{{ platform_labels[c.platform] }} · {{ objective_labels[c.objective] }} · {{ c.daily_budget }} €/jour
+      {% if c.post %} · publication #{{ c.post.id }}{% endif %}
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="v">{{ d.totals.impressions }}</div><div class="l">Impr.</div></div>
+    <div class="metric"><div class="v">{{ d.totals.clicks }}</div><div class="l">Clics</div></div>
+    <div class="metric"><div class="v">{{ "%.2f"|format(d.totals.spend) }} €</div><div class="l">Dépensé</div></div>
+  </div>
+  <div style="display:flex; gap:6px;">
+    {% if c.status.value == 'draft' %}
+    <form method="post" action="/ads/{{ c.id }}/activate" onsubmit="return confirm('Confirmer l\'activation de cette campagne avec un budget de {{ c.daily_budget }} €/jour ?');">
+      <input type="hidden" name="confirm_spend" value="yes">
+      <button class="btn small" type="submit">Activer</button>
+    </form>
+    {% elif c.status.value == 'active' %}
+    <form method="post" action="/ads/{{ c.id }}/pause">
+      <button class="btn secondary small" type="submit">Pause</button>
+    </form>
+    {% endif %}
+    <form method="post" action="/ads/{{ c.id }}/delete" onsubmit="return confirm('Supprimer cette campagne ?');">
+      <button class="btn danger small" type="submit">Suppr.</button>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div class="card">
+  <strong>À savoir</strong>
+  <p class="helptext">
+    Une campagne créée ici démarre toujours en <strong>brouillon</strong> — aucune dépense n'est jamais lancée
+    automatiquement. Vous devez explicitement cliquer sur "Activer" et confirmer le budget. Tant que la
+    plateforme publicitaire n'est pas réellement configurée (voir SETUP.md), les campagnes restent en mode
+    démo avec des statistiques simulées ; pour de vraies publicités, il faudra finaliser la mise en ligne
+    dans le gestionnaire natif de chaque plateforme (Meta Ads Manager, TikTok Ads Manager, Campaign Manager
+    LinkedIn, Google Ads pour YouTube) — ce sont des comptes publicitaires distincts, avec leur propre moyen
+    de paiement, que nous ne pouvons pas créer à votre place.
+  </p>
+</div>
+{% endblock %}

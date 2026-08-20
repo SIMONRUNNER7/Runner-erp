@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — Runner Golf Social</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="card auth-card">
+      <h2 style="margin-top:0;">⛳ Runner Golf Social</h2>
+      {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+      <form method="post" action="/login">
+        <label>Email</label>
+        <input type="email" name="email" required autofocus>
+        <label>Mot de passe</label>
+        <input type="password" name="password" required>
+        <button class="btn" type="submit" style="width:100%; margin-top:20px;">Se connecter</button>
+      </form>
+      {% if allow_register %}
+      <p style="font-size:0.85rem; margin-top:16px;">Première utilisation ? <a href="/register">Créer le compte administrateur</a></p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

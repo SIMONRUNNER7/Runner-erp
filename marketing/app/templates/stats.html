@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Statistiques — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Statistiques</h1></div>
+
+{% if not has_data %}
+<div class="card empty-state">
+  Pas encore de statistiques : publiez du contenu depuis <a href="/composer">le composer</a>, les chiffres
+  apparaîtront ici (mis à jour automatiquement, réellement pour les comptes connectés, simulés pour les comptes démo).
+</div>
+{% endif %}
+
+<div class="grid grid-5">
+  <div class="card stat-tile"><div class="value">{{ totals.views }}</div><div class="label">Vues / impressions</div></div>
+  <div class="card stat-tile"><div class="value">{{ totals.likes }}</div><div class="label">Likes</div></div>
+  <div class="card stat-tile"><div class="value">{{ totals.comments }}</div><div class="label">Commentaires</div></div>
+  <div class="card stat-tile"><div class="value">{{ totals.shares }}</div><div class="label">Partages</div></div>
+  <div class="card stat-tile"><div class="value">{{ avg_engagement }}%</div><div class="label">Taux d'engagement moyen</div></div>
+</div>
+
+<div class="card">
+  <strong>Vues par jour (14 derniers jours)</strong>
+  <canvas id="viewsChart" height="90"></canvas>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <strong>Par plateforme</strong>
+    <table>
+      <thead><tr><th>Plateforme</th><th>Posts</th><th>Vues</th><th>Likes</th></tr></thead>
+      <tbody>
+        {% for p, d in per_platform.items() %}
+        <tr>
+          <td>{{ platform_labels[p] }}</td>
+          <td>{{ d.posts }}</td>
+          <td>{{ d.views }}</td>
+          <td>{{ d.likes }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <strong>Top publications</strong>
+    {% if top_posts %}
+      {% for target, snap in top_posts %}
+      <div style="padding:8px 0; border-top:1px solid var(--border);">
+        <div style="font-size:0.88rem;">{{ (target.post.caption or '(sans texte)')[:60] }}</div>
+        <div class="helptext">{{ platform_labels[target.platform] }} · {{ snap.engagement_rate }}% d'engagement · {{ snap.views }} vues</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty-state">Pas encore de données.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+  const chartData = {{ chart_data | safe }};
+  const colors = ['#c4302b', '#010101', '#e1306c', '#1877f2', '#0a66c2'];
+  chartData.datasets.forEach((ds, i) => { ds.borderColor = colors[i % colors.length]; ds.backgroundColor = colors[i % colors.length]; ds.tension = 0.3; ds.fill = false; });
+  new Chart(document.getElementById('viewsChart'), {
+    type: 'line',
+    data: chartData,
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+</script>
+{% endblock %}

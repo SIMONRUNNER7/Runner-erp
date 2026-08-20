@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Messagerie — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <h1>Messagerie</h1>
+    <div class="subtitle">Toutes vos conversations, tous réseaux confondus.</div>
+  </div>
+</div>
+
+{% if not conversations %}
+<div class="card empty-state">
+  Aucune conversation. Connectez au moins un compte (mode démo suffit) pour voir des exemples de messagerie unifiée.
+</div>
+{% else %}
+<div class="inbox-layout">
+  <div class="conv-list">
+    {% for c in conversations %}
+    <a href="/inbox?conversation_id={{ c.id }}" style="color:inherit; text-decoration:none;">
+      <div class="conv-item {{ 'active' if active_conversation and c.id == active_conversation.id }}">
+        <div class="avatar sm">{{ c.participant_name[0] }}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="name">
+            <span class="platform-badge" style="background:{{ platform_colors[c.platform] }};">{{ c.platform.value[0]|upper }}</span>
+            {{ c.participant_name }}
+            {% if c.unread %}<span class="dot"></span>{% endif %}
+          </div>
+          <div class="preview">{{ c.messages[-1].text if c.messages else '' }}</div>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="thread">
+    {% if active_conversation %}
+    <div class="thread-header">
+      <div class="avatar">{{ active_conversation.participant_name[0] }}</div>
+      <div>
+        <strong>{{ active_conversation.participant_name }}</strong>
+        <div class="platform-label-row helptext">
+          <span class="platform-badge" style="background:{{ platform_colors[active_conversation.platform] }};">{{ active_conversation.platform.value[0]|upper }}</span>
+          {{ platform_labels[active_conversation.platform] }}
+          {% if active_conversation.platform.value not in messaging_capable %}
+          · <span style="color:var(--amber);">aperçu démo — API de messagerie non disponible publiquement pour ce réseau</span>
+          {% elif active_conversation.simulated %}
+          · <span class="pill simulated">démo</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="thread-messages">
+      {% for m in active_conversation.messages %}
+      <div class="msg-bubble {{ 'out' if m.direction.value == 'outbound' else 'in' }}">{{ m.text }}</div>
+      {% endfor %}
+    </div>
+    <form method="post" action="/inbox/{{ active_conversation.id }}/reply" class="thread-reply">
+      <textarea name="text" rows="1" placeholder="Écrire une réponse..." required></textarea>
+      <button class="btn" type="submit">Envoyer</button>
+    </form>
+    {% else %}
+    <div class="empty-state">Sélectionnez une conversation.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Créer le compte administrateur — Runner Golf Social</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="auth-page">
+    <div class="card auth-card">
+      <h2 style="margin-top:0;">Créer le compte administrateur</h2>
+      <p class="helptext">Cette page n'est disponible que tant qu'aucun utilisateur n'existe.</p>
+      {% if error %}<div class="flash error">{{ error }}</div>{% endif %}
+      <form method="post" action="/register">
+        <label>Nom</label>
+        <input type="text" name="name" required autofocus>
+        <label>Email</label>
+        <input type="email" name="email" required>
+        <label>Mot de passe</label>
+        <input type="password" name="password" required minlength="8">
+        <button class="btn" type="submit" style="width:100%; margin-top:20px;">Créer le compte</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

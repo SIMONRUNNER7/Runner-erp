@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Comptes — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Comptes connectés</h1></div>
+
+<div class="grid grid-3">
+  {% for p in platforms %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>{{ p.label }}</strong>
+      {% if p.configured %}
+        <span class="pill connected">API configurée</span>
+      {% else %}
+        <span class="pill disconnected">API non configurée</span>
+      {% endif %}
+    </div>
+
+    {% if p.accounts %}
+      <div style="margin-top:14px;">
+        {% for acc in p.accounts %}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--border);">
+          <div>
+            <div style="font-size:0.9rem;">{{ acc.account_name }}</div>
+            {% if acc.simulated %}<span class="pill simulated">Mode démo</span>{% else %}<span class="pill connected">Connecté</span>{% endif %}
+          </div>
+          <form method="post" action="/accounts/{{ acc.id }}/disconnect" onsubmit="return confirm('Déconnecter ce compte ?');">
+            <button class="btn secondary" type="submit" style="padding:4px 10px; font-size:0.78rem;">Retirer</button>
+          </form>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="helptext" style="margin-top:14px;">Aucun compte connecté.</p>
+    {% endif %}
+
+    <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+      {% if p.configured %}
+        <a class="btn" href="/accounts/{{ p.key }}/connect">Connecter (OAuth réel)</a>
+      {% else %}
+        <form method="post" action="/accounts/{{ p.key }}/connect-demo">
+          <button class="btn secondary" type="submit">+ Ajouter en mode démo</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <strong>Besoin des vraies API ?</strong>
+  <p class="helptext">
+    Tant qu'une plateforme n'affiche pas "API configurée", ses publications et statistiques sont simulées
+    pour vous permettre de tester tout le produit dès maintenant. Consultez le fichier
+    <code>SETUP.md</code> à la racine du projet pour la procédure détaillée d'obtention des accès
+    développeur pour YouTube, TikTok, Meta (Instagram/Facebook) et LinkedIn.
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Bibliothèque de médias — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Bibliothèque de médias</h1>
+</div>
+
+<form method="post" action="/media/upload" enctype="multipart/form-data" class="card" style="display:flex; gap:12px; align-items:center;">
+  <input type="file" name="files" accept="image/*,video/*" multiple style="flex:1;">
+  <button class="btn" type="submit">Ajouter</button>
+</form>
+
+{% if not assets %}
+<div class="card empty-state">
+  Aucun média pour l'instant. Les fichiers que vous uploadez dans le composer sont aussi automatiquement
+  ajoutés ici.
+</div>
+{% else %}
+<div class="grid grid-4">
+  {% for asset in assets %}
+  <div class="card tight">
+    {% if asset.media_type == 'image' %}
+    <img src="/uploads/{{ asset.path.split('/')[-1] }}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:10px;">
+    {% else %}
+    <div style="width:100%; aspect-ratio:1; background:var(--bg); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:2rem;">🎬</div>
+    {% endif %}
+    <div class="helptext" style="margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ asset.original_filename }}</div>
+    <div style="display:flex; gap:6px; margin-top:6px;">
+      <a class="btn secondary small" style="flex:1; text-align:center;" href="/composer?media_asset_id={{ asset.id }}">Utiliser</a>
+      <form method="post" action="/media/{{ asset.id }}/delete" onsubmit="return confirm('Supprimer ce média ?');">
+        <button class="btn danger small" type="submit">✕</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

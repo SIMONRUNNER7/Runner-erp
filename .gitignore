@@ -19,3 +19,12 @@ coverage/
 prisma/migrations/
 *.sqlite
 *.sqlite3
+
+# Marketing / Communication (app Python)
+marketing/venv/
+marketing/data/*.db
+marketing/data/*.db-journal
+marketing/data/uploads/*
+!marketing/data/uploads/.gitkeep
+__pycache__/
+*.py[cod]

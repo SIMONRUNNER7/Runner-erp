@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Publications — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Publications</h1>
+  <a class="btn" href="/composer">+ Nouvelle publication</a>
+</div>
+
+{% if not posts %}
+<div class="card empty-state">Aucune publication pour le moment.</div>
+{% else %}
+{% for post in posts %}
+<div class="card" id="post-{{ post.id }}">
+  <div style="display:flex; justify-content:space-between; gap:16px;">
+    <div style="flex:1; min-width:0;">
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+        <span class="pill {{ post.status.value }}">{{ post.status.value }}</span>
+        <span class="pill {{ 'simulated' if post.post_type.value == 'story' else 'draft' }}">{{ '⚡ story' if post.post_type.value == 'story' else '📱 fil' }}</span>
+        <span class="helptext" style="margin:0;">
+          {% if post.scheduled_at %}Planifié : {{ post.scheduled_at | local }} (heure de Paris){% else %}{{ post.created_at | local }}{% endif %}
+        </span>
+      </div>
+      <div style="font-size:0.92rem; white-space:pre-line;">{{ (post.effective_caption or '(sans texte)')[:220] }}{% if post.effective_caption and post.effective_caption|length > 220 %}…{% endif %}</div>
+      {% if post.media_type %}<div class="helptext">📎 {{ post.media_type }}</div>{% endif %}
+      {% if post.options.hashtags or post.options.mentions %}
+      <div class="helptext">✅ hashtags/mentions du formulaire inclus automatiquement dans le texte publié ci-dessus</div>
+      {% endif %}
+
+      <div style="margin-top:10px; display:flex; gap:14px; flex-wrap:wrap;">
+        {% for t in post.targets %}
+        <div class="platform-label-row">
+          <span class="platform-badge" style="background:{{ '#E1306C' if t.platform.value=='instagram' else '#1877F2' if t.platform.value=='facebook' else '#FF0000' if t.platform.value=='youtube' else '#000' if t.platform.value=='tiktok' else '#0A66C2' }}">
+            {{ t.platform.value[0]|upper }}
+          </span>
+          <span style="font-size:0.85rem;">{{ platform_labels[t.platform] }}</span>
+          <span class="pill {{ t.status.value }}">{{ t.status.value }}</span>
+          {% if t.scheduled_at and t.scheduled_at != post.scheduled_at %}
+          <span class="helptext" style="margin:0;">({{ t.scheduled_at | local }})</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:6px; flex-shrink:0; align-self:flex-start;">
+      {% if post.status.value in ['draft', 'scheduled', 'failed'] %}
+      <form method="post" action="/posts/{{ post.id }}/publish-now">
+        <button class="btn secondary small" type="submit">Publier maintenant</button>
+      </form>
+      {% endif %}
+      <a class="btn secondary small" href="/composer?duplicate={{ post.id }}">Dupliquer</a>
+      <form method="post" action="/posts/{{ post.id }}/delete" onsubmit="return confirm('Supprimer cette publication ?');">
+        <button class="btn danger small" type="submit">Suppr.</button>
+      </form>
+    </div>
+  </div>
+
+  {% if suggestions_by_post.get(post.id) %}
+  <div class="boost-box">
+    <div class="title">🚀 Mettre en avant cette publication</div>
+    {% for s in suggestions_by_post[post.id] %}
+    <div style="font-size:0.85rem; margin-top:6px;">{{ s.icon }} {{ s.text }}</div>
+    {% endfor %}
+    <div class="boost-actions">
+      {% for s in suggestions_by_post[post.id] %}
+      <a class="btn secondary small" href="{{ s.action_url }}">{{ s.action_label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

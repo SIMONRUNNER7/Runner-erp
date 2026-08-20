@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Équipe — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Équipe</h1></div>
+
+<div class="card">
+  {% for m in members %}
+  <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid var(--border);">
+    <div class="avatar sm">{{ m.name[0]|upper }}</div>
+    <div style="flex:1;">
+      <strong>{{ m.name }}</strong> <span class="helptext">{{ m.email }}</span>
+    </div>
+    {% if m.id == current_user.id %}
+      <span class="pill connected">{{ 'admin' if m.role.value == 'admin' else 'éditeur' }} (vous)</span>
+    {% else %}
+      <form method="post" action="/team/{{ m.id }}/role" style="display:flex; align-items:center; gap:6px;">
+        <select name="role" onchange="this.form.submit()">
+          <option value="admin" {{ 'selected' if m.role.value == 'admin' }}>Admin</option>
+          <option value="editor" {{ 'selected' if m.role.value == 'editor' }}>Éditeur</option>
+        </select>
+      </form>
+      <form method="post" action="/team/{{ m.id }}/delete" onsubmit="return confirm('Retirer {{ m.name }} de l\'équipe ?');">
+        <button class="btn danger small" type="submit">Retirer</button>
+      </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card" style="max-width:480px;">
+  <strong>Ajouter un membre</strong>
+  <form method="post" action="/team/new">
+    <label>Nom</label>
+    <input type="text" name="name" required>
+    <label>Email</label>
+    <input type="email" name="email" required>
+    <label>Rôle</label>
+    <select name="role">
+      <option value="editor">Éditeur — crée/planifie des posts, répond aux messages</option>
+      <option value="admin">Admin — accès complet (comptes, pubs, équipe)</option>
+    </select>
+    <button class="btn" type="submit" style="margin-top:16px;">Créer le compte</button>
+  </form>
+  <p class="helptext">
+    Un mot de passe temporaire sera généré et affiché une seule fois — transmettez-le à la personne
+    concernée. Il n'y a pas encore d'envoi d'email automatique.
+  </p>
+</div>
+{% endblock %}

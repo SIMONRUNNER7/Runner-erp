@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>Bonjour 👋</h1>
+  <a class="btn" href="/composer">+ Nouvelle publication</a>
+</div>
+
+<div class="grid grid-3">
+  <div class="card stat-tile"><div class="value">{{ accounts_count }}</div><div class="label">Comptes connectés</div></div>
+  <div class="card stat-tile"><div class="value">{{ posts_this_week }}</div><div class="label">Publications cette semaine</div></div>
+  <div class="card stat-tile"><div class="value">{{ upcoming|length }}</div><div class="label">Publications planifiées</div></div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <strong>Prochaines publications planifiées</strong>
+    {% if upcoming %}
+      {% for post in upcoming %}
+      <div style="padding:8px 0; border-top:1px solid var(--border);">
+        <div style="font-size:0.9rem;">{{ (post.caption or '(sans texte)')[:60] }}</div>
+        <div class="helptext">{{ post.scheduled_at | local }} · {{ post.targets|length }} plateforme(s)</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="empty-state">Aucune publication planifiée. <a href="/composer">Créer un post</a></p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <strong>Dernières notifications</strong>
+    {% if recent_notifications %}
+      {% for n in recent_notifications %}
+      <div class="notif-item {{ 'unread' if not n.read }}">
+        {% if n.platform %}
+        <span class="platform-badge" style="background:{{ platform_colors[n.platform] }};">{{ n.platform.value[0]|upper }}</span>
+        {% else %}
+        <span class="platform-badge" style="background:var(--ink);">⛳</span>
+        {% endif %}
+        <div class="body">
+          <strong style="font-size:0.85rem;">{{ n.title }}</strong>
+          <div style="font-size:0.85rem;">{{ n.message }}</div>
+        </div>
+      </div>
+      {% endfor %}
+      <a href="/notifications" style="font-size:0.85rem;">Voir toutes les notifications →</a>
+    {% else %}
+      <p class="empty-state">Rien à signaler pour l'instant.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% if accounts_count == 0 %}
+<div class="card" style="border-color: var(--accent);">
+  <strong>Pour commencer</strong>
+  <p class="helptext">
+    1. <a href="/accounts">Connectez vos comptes</a> (YouTube, TikTok, Instagram, Facebook, LinkedIn) — le mode
+    démo permet de tout tester sans clés API réelles.<br>
+    2. <a href="/composer">Créez votre première publication</a> multi-plateforme.<br>
+    3. Consultez vos <a href="/stats">statistiques</a> et vos <a href="/recommendations">conseils de publication</a>.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

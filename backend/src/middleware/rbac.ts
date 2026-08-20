@@ -50,6 +50,9 @@ export const rolePermissions: Record<string, Role[]> = {
   // Settings
   'GET /api/settings': ['president'],
   'POST /api/settings': ['president'],
+
+  // Communication (app marketing embarquée)
+  'GET /api/marketing': ['president', 'commercial'],
 };
 
 export const requireRole = (...roles: Role[]) => {

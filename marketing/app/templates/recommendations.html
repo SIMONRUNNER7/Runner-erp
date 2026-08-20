@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Conseils — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar"><h1>Conseils de publication</h1></div>
+
+<div class="card">
+  <strong>💡 Analyse de contenu</strong>
+  <ul style="margin:10px 0 0 18px; padding:0;">
+    {% for insight in insights %}
+    <li style="margin-bottom:8px; font-size:0.92rem;">{{ insight }}</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="grid grid-3">
+  {% for platform, info in best_times.items() %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>{{ platform_labels[platform] }}</strong>
+      {% if info.source == 'data' %}
+        <span class="pill connected">Basé sur vos données</span>
+      {% else %}
+        <span class="pill simulated">Bonnes pratiques</span>
+      {% endif %}
+    </div>
+    <p class="helptext" style="margin-top:10px;">Meilleurs créneaux pour poster :</p>
+    <ol style="margin:6px 0 0 18px; padding:0;">
+      {% for label in info.labels %}
+      <li style="font-size:0.92rem; margin-bottom:4px;">{{ label }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <strong>Comment ça marche ?</strong>
+  <p class="helptext">
+    Dès qu'une plateforme a au moins {{ 5 }} publications avec statistiques, les créneaux affichés sont
+    recalculés à partir de l'engagement réel de vos posts (jour/heure de publication vs taux d'engagement).
+    En dessous de ce seuil, nous affichons des créneaux de référence issus des bonnes pratiques du secteur.
+    Une notification est automatiquement créée dans le <a href="/notifications">centre de notifications</a>
+    avant chaque meilleur créneau à venir. Chaque créneau est affiché en heure de Paris et en heure de
+    New York, pour tenir compte de votre audience à la fois francophone et anglo-américaine.
+  </p>
+</div>
+{% endblock %}

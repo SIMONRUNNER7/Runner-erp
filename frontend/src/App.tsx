@@ -14,6 +14,7 @@ import Automations from './pages/Automations';
 import Settings from './pages/Settings';
 import Production from './pages/Production';
 import B2BClients from './pages/B2BClients';
+import Communication from './pages/Communication';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore();
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="automations" element={<Automations />} />
           <Route path="settings" element={<Settings />} />
           <Route path="b2b-clients" element={<B2BClients />} />
+          <Route path="communication" element={<Communication />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

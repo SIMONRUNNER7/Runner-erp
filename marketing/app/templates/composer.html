@@ -1,0 +1,504 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle publication — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <div>
+    <h1>Nouvelle publication</h1>
+    <div class="subtitle">Rédigez une fois, publiez partout — avec un score d'optimisation par réseau.</div>
+  </div>
+</div>
+
+{% if not accounts %}
+<div class="card empty-state">
+  Aucun compte connecté. <a href="/accounts">Connectez d'abord un compte</a> (le mode démo suffit pour tester).
+</div>
+{% else %}
+<div class="grid" style="grid-template-columns: 1.4fr 1fr; align-items: start;">
+<form method="post" action="/composer" enctype="multipart/form-data" class="card" id="composer-form">
+  <label>Type de publication</label>
+  <div class="segmented" id="type-toggle">
+    <button type="button" data-value="feed" class="active">📱 Fil d'actualité</button>
+    <button type="button" data-value="story">⚡ Story</button>
+  </div>
+  <input type="hidden" name="post_type" id="post_type" value="{{ prefill.post_type if prefill else 'feed' }}">
+  <p class="helptext" id="story-warning" style="display:none; color:var(--amber);">
+    Les stories ne sont disponibles que sur Instagram et Facebook (TikTok, LinkedIn et YouTube n'exposent
+    pas cette fonctionnalité via leur API publique).
+  </p>
+
+  <label>Légende / texte du post</label>
+  <textarea name="caption" id="caption" rows="5" placeholder="Écrivez votre publication pour Runner Golf...">{{ prefill.caption if prefill else '' }}</textarea>
+  <button type="button" class="btn secondary small" id="ideas-btn" style="margin-top:6px;">✨ Idées de légende</button>
+
+  <div id="ideas-panel" class="card tight" style="display:none; background:var(--bg); margin-top:8px;">
+    <div class="tabs">
+      <div class="tab active" data-ideas-tab="templates">Modèles</div>
+      <div class="tab" data-ideas-tab="inspiration">Vos meilleures publications</div>
+    </div>
+    <div id="ideas-templates">
+      {% for category, templates_list in caption_templates.items() %}
+      <div style="margin-bottom:10px;">
+        <div class="helptext" style="font-weight:700;">{{ category }}</div>
+        {% for tpl in templates_list %}
+        <div class="chip" style="cursor:pointer; display:block; margin-top:4px; white-space:normal;" data-insert="{{ tpl }}">{{ tpl }}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div id="ideas-inspiration" style="display:none;">
+      {% if inspiration %}
+        {% for insp in inspiration %}
+        <div class="chip" style="cursor:pointer; display:block; margin-top:4px; white-space:normal;" data-insert="{{ insp.caption }}">
+          <span class="platform-badge" style="background:{{ '#E1306C' if insp.platform.value=='instagram' else '#1877F2' if insp.platform.value=='facebook' else '#FF0000' if insp.platform.value=='youtube' else '#000' if insp.platform.value=='tiktok' else '#0A66C2' }}">{{ insp.platform.value[0]|upper }}</span>
+          {{ insp.engagement_rate }}% d'engagement — {{ insp.caption[:80] }}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="helptext">Pas encore assez de publications avec statistiques pour vous montrer vos meilleures performances.</p>
+      {% endif %}
+    </div>
+    <p class="helptext" style="margin-top:8px;">Cliquez sur une idée pour l'insérer dans votre légende (à personnaliser ensuite).</p>
+  </div>
+
+  <label>Média (image ou vidéo)</label>
+  <input type="hidden" name="media_asset_id" id="media_asset_id" value="{{ selected_asset.id if selected_asset else '' }}">
+  <div id="media-selected-preview" style="{{ '' if selected_asset else 'display:none;' }} margin-top:6px;">
+    {% if selected_asset and selected_asset.media_type == 'image' %}
+    <img src="/uploads/{{ selected_asset.path.split('/')[-1] }}" style="max-width:120px; border-radius:10px;">
+    {% elif selected_asset %}
+    <div class="avatar">🎬</div>
+    {% endif %}
+    <button type="button" class="btn secondary small" id="clear-asset-btn" style="margin-top:6px;">Retirer ce média</button>
+  </div>
+  <input type="file" name="media" id="media" accept="image/*,video/*" {{ 'style=display:none;' if selected_asset }}>
+  <p class="helptext">Instagram, TikTok et les stories nécessitent un média. YouTube nécessite une vidéo.
+    <a href="/media">📁 Choisir dans la bibliothèque</a></p>
+
+  {% if recent_assets %}
+  <div class="chip-row" style="margin-top:6px;">
+    {% for a in recent_assets %}
+    <div class="chip" style="cursor:pointer; padding:2px; display:flex; align-items:center; gap:4px;" data-asset-id="{{ a.id }}" data-asset-type="{{ a.media_type }}" data-asset-thumb="{% if a.media_type == 'image' %}/uploads/{{ a.path.split('/')[-1] }}{% endif %}">
+      {% if a.media_type == 'image' %}
+      <img src="/uploads/{{ a.path.split('/')[-1] }}" style="width:22px; height:22px; object-fit:cover; border-radius:4px;">
+      {% else %}🎬{% endif %}
+      <span style="font-size:0.72rem;">{{ a.original_filename[:14] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <label>Publier sur</label>
+  <div class="platform-checks" id="platform-checks">
+    {% for acc in accounts %}
+    <label class="platform-check" data-platform="{{ acc.platform.value }}" data-account-id="{{ acc.id }}">
+      <input type="checkbox" name="account_ids" value="{{ acc.id }}" class="acc-checkbox"
+        {% if prefill and acc.id in prefill.account_ids %}checked{% endif %}>
+      <span class="platform-badge" style="background:{{ '#E1306C' if acc.platform.value=='instagram' else '#1877F2' if acc.platform.value=='facebook' else '#FF0000' if acc.platform.value=='youtube' else '#000' if acc.platform.value=='tiktok' else '#0A66C2' }}">
+        {{ acc.platform.value[0]|upper }}
+      </span>
+      {{ platform_labels[acc.platform] }} — {{ acc.account_name }}
+      {% if acc.simulated %}<span class="pill simulated">démo</span>{% endif %}
+    </label>
+    {% endfor %}
+  </div>
+
+  <div class="tabs" style="margin-top:22px;">
+    <div class="tab active">Options avancées</div>
+  </div>
+  <label>Hashtags <span class="helptext" style="display:inline;">(séparés par des virgules, sans # — Instagram/TikTok/LinkedIn)</span></label>
+  <input type="text" name="hashtags" id="hashtags" placeholder="golf, runnergolf, proshop"
+    value="{{ (prefill.options.hashtags | join(', ')) if prefill and prefill.options.hashtags else '' }}">
+  <p class="helptext">Ajoutés automatiquement à la fin du texte publié, au format <code>#golf #runnergolf</code> — voir l'aperçu ci-dessous.</p>
+
+  <label>Mentions <span class="helptext" style="display:inline;">(séparées par des virgules, avec ou sans @)</span></label>
+  <input type="text" name="mentions" id="mentions" placeholder="partenaire, joueur"
+    value="{{ (prefill.options.mentions | join(', ')) if prefill and prefill.options.mentions else '' }}">
+
+  <label>Aperçu du texte qui sera publié</label>
+  <div class="card tight" id="caption-preview" style="background:var(--bg); white-space:pre-line; font-size:0.88rem; min-height:20px;"></div>
+
+  <div class="grid grid-2">
+    <div>
+      <label>Lieu (Instagram/Facebook)</label>
+      <input type="text" name="location" placeholder="Golf de Runner, Paris" value="{{ prefill.options.location if prefill else '' }}">
+    </div>
+    <div>
+      <label>Lien externe (Facebook/LinkedIn)</label>
+      <input type="text" name="link_url" placeholder="https://runner.golf" value="{{ prefill.options.link_url if prefill else '' }}">
+    </div>
+  </div>
+
+  <label>Texte alternatif du média (accessibilité — Instagram/Facebook)</label>
+  <input type="text" name="alt_text" placeholder="Joueur de golf sur le green au coucher du soleil" value="{{ prefill.options.alt_text if prefill else '' }}">
+
+  <label>Premier commentaire (Instagram — pour aérer la légende)</label>
+  <input type="text" name="first_comment" placeholder="#golf #runnergolf #proshop" value="{{ prefill.options.first_comment if prefill else '' }}">
+
+  <label>Audience</label>
+  <select name="visibility">
+    <option value="public">Public</option>
+    <option value="connections">Relations / abonnés uniquement (LinkedIn, Facebook)</option>
+  </select>
+
+  <label>Planification</label>
+  <div class="segmented" id="schedule-mode-toggle">
+    <button type="button" data-value="single" class="active">Même horaire partout</button>
+    <button type="button" data-value="per_platform">Horaires différents par réseau</button>
+  </div>
+  <input type="hidden" name="per_platform_times" id="per_platform_times" value="0">
+  <input type="hidden" name="target_times_json" id="target_times_json" value="{}">
+
+  <div id="single-time-block">
+    <label>Planifier pour <span class="helptext" style="display:inline;">(heure de Paris — laisser vide pour publier immédiatement)</span></label>
+    <input type="datetime-local" name="scheduled_at" id="scheduled_at">
+    <div class="chip-row" id="suggested-single"></div>
+  </div>
+
+  <div id="per-platform-block" style="display:none;">
+    <p class="helptext">
+      Sélectionnez d'abord vos réseaux ci-dessus : un champ horaire (heure de Paris) apparaît pour chacun,
+      pré-rempli avec son meilleur créneau. Toutes les plateformes sélectionnées doivent avoir un horaire.
+    </p>
+    <div id="per-platform-inputs"></div>
+  </div>
+
+  <div style="margin-top:22px; display:flex; gap:10px;">
+    <button class="btn" type="submit">Publier / Planifier</button>
+    <button class="btn secondary" type="button" id="analyze-btn">🔍 Analyser avant publication</button>
+  </div>
+</form>
+
+<div>
+  <div class="card" id="preview-card">
+    <strong>👁️ Aperçu du rendu</strong>
+    <p class="helptext">Sélectionnez au moins un réseau pour voir à quoi ressemblera votre publication.</p>
+    <div id="preview-mockups"></div>
+  </div>
+  <div class="card" id="score-card">
+    <strong>Score d'optimisation</strong>
+    <p class="helptext">Sélectionnez des comptes et cliquez sur "Analyser" pour voir vos chances de bonne visibilité, réseau par réseau.</p>
+    <div id="score-results"></div>
+  </div>
+  <div class="card">
+    <strong>💡 Rappel</strong>
+    <p class="helptext">
+      Le score se base sur la présence d'un média, la longueur de légende idéale par réseau, le nombre de
+      hashtags, l'alignement avec vos meilleurs créneaux et l'usage des bonnes pratiques (premier
+      commentaire, story). Les créneaux tiennent compte de votre audience francophone et anglo-américaine.
+      Voir <a href="/recommendations">tous vos conseils</a>.
+    </p>
+  </div>
+</div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+let currentMediaUrl = null;
+let currentMediaKind = null; // 'image' | 'video' | null
+const storyCapable = {{ story_capable | tojson }};
+const suggestedTimes = {{ suggested_times | tojson }};
+const accountPlatform = {
+  {% for acc in accounts %}"{{ acc.id }}": "{{ acc.platform.value }}",{% endfor %}
+};
+const accountLabel = {
+  {% for acc in accounts %}"{{ acc.id }}": {{ (platform_labels[acc.platform] ~ ' — ' ~ acc.account_name) | tojson }},{% endfor %}
+};
+
+// --- Idées de légende ---
+const ideasBtn = document.getElementById('ideas-btn');
+const ideasPanel = document.getElementById('ideas-panel');
+ideasBtn.addEventListener('click', () => {
+  ideasPanel.style.display = ideasPanel.style.display === 'none' ? 'block' : 'none';
+});
+document.querySelectorAll('[data-ideas-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-ideas-tab]').forEach(t => t.classList.toggle('active', t === tab));
+    document.getElementById('ideas-templates').style.display = tab.dataset.ideasTab === 'templates' ? 'block' : 'none';
+    document.getElementById('ideas-inspiration').style.display = tab.dataset.ideasTab === 'inspiration' ? 'block' : 'none';
+  });
+});
+document.querySelectorAll('[data-insert]').forEach(item => {
+  item.addEventListener('click', () => {
+    const captionEl = document.getElementById('caption');
+    captionEl.value = item.dataset.insert;
+    updatePreview();
+    ideasPanel.style.display = 'none';
+  });
+});
+
+// --- Sélection média depuis la bibliothèque ---
+const mediaInput = document.getElementById('media');
+const mediaAssetIdInput = document.getElementById('media_asset_id');
+const mediaPreview = document.getElementById('media-selected-preview');
+
+document.querySelectorAll('[data-asset-id]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    mediaAssetIdInput.value = chip.dataset.assetId;
+    mediaInput.value = '';
+    mediaInput.style.display = 'none';
+    mediaPreview.style.display = 'block';
+    mediaPreview.querySelector('img, .avatar')?.remove();
+    const el = chip.dataset.assetType === 'image'
+      ? Object.assign(document.createElement('img'), {src: chip.dataset.assetThumb, style: 'max-width:120px;border-radius:10px;'})
+      : Object.assign(document.createElement('div'), {className: 'avatar', textContent: '🎬'});
+    mediaPreview.prepend(el);
+    updatePreviewCards();
+  });
+});
+
+document.getElementById('clear-asset-btn')?.addEventListener('click', () => {
+  mediaAssetIdInput.value = '';
+  mediaPreview.style.display = 'none';
+  mediaInput.style.display = 'block';
+});
+
+mediaInput.addEventListener('change', () => {
+  if (mediaInput.files[0]) { mediaAssetIdInput.value = ''; mediaPreview.style.display = 'none'; }
+  updatePreviewCards();
+});
+
+document.querySelectorAll('.acc-checkbox').forEach(cb => {
+  cb.addEventListener('change', () => {
+    cb.closest('.platform-check').classList.toggle('checked', cb.checked);
+    renderSuggestedSingle();
+    renderPerPlatformInputs();
+    updatePreviewCards();
+  });
+  if (cb.checked) cb.closest('.platform-check').classList.add('checked');
+});
+
+const typeToggle = document.getElementById('type-toggle');
+const postTypeInput = document.getElementById('post_type');
+const storyWarning = document.getElementById('story-warning');
+
+function applyType(value) {
+  postTypeInput.value = value;
+  typeToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+  document.querySelectorAll('.platform-check').forEach(el => {
+    const platform = el.dataset.platform;
+    const disabled = value === 'story' && !storyCapable.includes(platform);
+    el.classList.toggle('disabled-opt', disabled);
+    el.querySelector('input').disabled = disabled;
+    if (disabled) { el.querySelector('input').checked = false; el.classList.remove('checked'); }
+  });
+  storyWarning.style.display = value === 'story' ? 'block' : 'none';
+  renderSuggestedSingle();
+  renderPerPlatformInputs();
+  updatePreviewCards();
+}
+
+typeToggle.querySelectorAll('button').forEach(b => b.addEventListener('click', () => applyType(b.dataset.value)));
+
+// --- Mode de planification (horaire unique vs par plateforme) ---
+const scheduleModeToggle = document.getElementById('schedule-mode-toggle');
+const perPlatformFlag = document.getElementById('per_platform_times');
+const singleBlock = document.getElementById('single-time-block');
+const perPlatformBlock = document.getElementById('per-platform-block');
+
+function applyScheduleMode(value) {
+  perPlatformFlag.value = value === 'per_platform' ? '1' : '0';
+  scheduleModeToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.value === value));
+  singleBlock.style.display = value === 'per_platform' ? 'none' : 'block';
+  perPlatformBlock.style.display = value === 'per_platform' ? 'block' : 'none';
+  renderPerPlatformInputs();
+}
+scheduleModeToggle.querySelectorAll('button').forEach(b => b.addEventListener('click', () => applyScheduleMode(b.dataset.value)));
+
+function selectedAccountIds() {
+  return Array.from(document.querySelectorAll('.acc-checkbox:checked')).map(cb => cb.value);
+}
+
+function renderSuggestedSingle() {
+  const el = document.getElementById('suggested-single');
+  const platforms = [...new Set(selectedAccountIds().map(id => accountPlatform[id]))];
+  const chips = [];
+  platforms.forEach(p => {
+    (suggestedTimes[p] || []).slice(0, 1).forEach(s => {
+      chips.push(`<span class="chip" style="cursor:pointer;" data-iso="${s.iso}">${s.label}</span>`);
+    });
+  });
+  el.innerHTML = chips.length ? ('Créneaux conseillés : ' + chips.join(' ')) : '';
+  el.querySelectorAll('[data-iso]').forEach(chip => {
+    chip.addEventListener('click', () => { document.getElementById('scheduled_at').value = chip.dataset.iso; });
+  });
+}
+
+function renderPerPlatformInputs() {
+  if (perPlatformFlag.value !== '1') return;
+  const container = document.getElementById('per-platform-inputs');
+  const ids = selectedAccountIds();
+  if (ids.length === 0) {
+    container.innerHTML = '<p class="helptext">Sélectionnez au moins un réseau ci-dessus.</p>';
+    return;
+  }
+  container.innerHTML = ids.map(id => {
+    const platform = accountPlatform[id];
+    const suggestions = suggestedTimes[platform] || [];
+    const defaultIso = suggestions[0] ? suggestions[0].iso : '';
+    const chips = suggestions.map(s => `<span class="chip" style="cursor:pointer;" data-target="target_time_${id}" data-iso="${s.iso}">${s.label}</span>`).join(' ');
+    return `
+      <div style="margin-top:12px;">
+        <label>${accountLabel[id]}</label>
+        <input type="datetime-local" class="target-time-input" data-account-id="${id}" id="target_time_${id}" value="${defaultIso}" required>
+        <div class="chip-row">${chips}</div>
+      </div>`;
+  }).join('');
+  container.querySelectorAll('[data-iso]').forEach(chip => {
+    chip.addEventListener('click', () => { document.getElementById(chip.dataset.target).value = chip.dataset.iso; });
+  });
+}
+
+applyType(postTypeInput.value);
+applyScheduleMode('single');
+renderSuggestedSingle();
+
+document.getElementById('composer-form').addEventListener('submit', () => {
+  if (perPlatformFlag.value === '1') {
+    const map = {};
+    document.querySelectorAll('.target-time-input').forEach(input => {
+      if (input.value) map[input.dataset.accountId] = input.value;
+    });
+    document.getElementById('target_times_json').value = JSON.stringify(map);
+  }
+});
+
+function effectiveCaptionText() {
+  const caption = document.getElementById('caption').value;
+  const already = new Set((caption.match(/[#@]\w+/g) || []).map(s => s.toLowerCase()));
+  const hashtags = document.getElementById('hashtags').value.split(',').map(s => s.trim()).filter(Boolean);
+  const mentions = document.getElementById('mentions').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  const extras = [];
+  hashtags.forEach(t => {
+    const clean = t.replace(/^#/, '');
+    if (clean && !already.has(('#' + clean).toLowerCase())) extras.push('#' + clean);
+  });
+  mentions.forEach(m => {
+    const clean = m.replace(/^@/, '');
+    if (clean && !already.has(('@' + clean).toLowerCase())) extras.push('@' + clean);
+  });
+
+  return extras.length ? (caption ? caption + '\n\n' + extras.join(' ') : extras.join(' ')) : caption;
+}
+
+function updatePreview() {
+  const el = document.getElementById('caption-preview');
+  el.textContent = effectiveCaptionText() || '(rien à publier pour l\'instant)';
+  updatePreviewCards();
+}
+
+['caption', 'hashtags', 'mentions'].forEach(id => document.getElementById(id).addEventListener('input', updatePreview));
+
+// --- Mockups d'aperçu par plateforme ---
+function refreshMediaPreviewSource() {
+  const file = mediaInput.files[0];
+  if (file) {
+    currentMediaUrl = URL.createObjectURL(file);
+    currentMediaKind = file.type.startsWith('video') ? 'video' : 'image';
+  } else {
+    const chip = document.querySelector(`[data-asset-id="${mediaAssetIdInput.value}"]`);
+    if (mediaAssetIdInput.value && chip) {
+      currentMediaKind = chip.dataset.assetType;
+      currentMediaUrl = chip.dataset.assetThumb || null;
+    } else {
+      currentMediaUrl = null;
+      currentMediaKind = null;
+    }
+  }
+}
+
+function mockMedia() {
+  if (currentMediaKind === 'image' && currentMediaUrl) return `<div class="mock-media"><img src="${currentMediaUrl}"></div>`;
+  if (currentMediaKind === 'video') return `<div class="mock-media" style="aspect-ratio:16/9;">🎬 vidéo</div>`;
+  return '';
+}
+
+const PLATFORM_MOCKS = {
+  instagram: (caption) => `
+    <div class="mock-card mock-ig">
+      <div class="mock-head"><div class="avatar sm">R</div><div><div class="name">runnergolf</div></div></div>
+      ${mockMedia()}
+      <div class="mock-icons">♥ ⤳ ✉</div>
+      <div class="mock-body"><strong>runnergolf</strong> ${caption.replace(/\n/g, ' ').slice(0, 90)}</div>
+    </div>`,
+  facebook: (caption) => `
+    <div class="mock-card mock-fb">
+      <div class="mock-head"><div class="avatar sm">R</div><div><div class="name">Runner Golf</div><div class="sub">Il y a quelques secondes</div></div></div>
+      <div class="mock-body">${caption.slice(0, 140)}</div>
+      ${mockMedia()}
+      <div class="mock-icons">👍 Like 💬 Commenter ↗ Partager</div>
+    </div>`,
+  linkedin: (caption) => `
+    <div class="mock-card mock-li">
+      <div class="mock-head"><div class="avatar sm">R</div><div><div class="name">Runner Golf</div><div class="sub">Golf · Suivre</div></div></div>
+      <div class="mock-body">${caption.slice(0, 160)}</div>
+      ${mockMedia()}
+      <div class="mock-icons">👍 J'aime 💬 Commenter ↗ Republier</div>
+    </div>`,
+  tiktok: (caption) => `
+    <div class="mock-card mock-tt">
+      <div class="mock-media" style="aspect-ratio:9/16; max-width:160px; margin:0 auto;">${currentMediaKind ? mockMedia() : '🎬'}</div>
+      <div class="mock-body">@runnergolf<br>${caption.slice(0, 60)}</div>
+    </div>`,
+  youtube: (caption) => `
+    <div class="mock-card mock-yt">
+      ${mockMedia() || '<div class="mock-media">▶</div>'}
+      <div class="mock-body">${caption.slice(0, 70) || '(titre de la vidéo)'}</div>
+      <div class="mock-icons" style="padding-top:0;">Runner Golf</div>
+    </div>`,
+};
+
+function updatePreviewCards() {
+  refreshMediaPreviewSource();
+  const caption = effectiveCaptionText();
+  const platforms = [...new Set(selectedAccountIds().map(id => accountPlatform[id]))];
+  const el = document.getElementById('preview-mockups');
+  if (platforms.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = platforms.map(p => PLATFORM_MOCKS[p] ? PLATFORM_MOCKS[p](caption) : '').join('');
+}
+
+updatePreview();
+
+document.getElementById('analyze-btn').addEventListener('click', async () => {
+  const accountIds = selectedAccountIds().map(id => parseInt(id));
+  const resultsEl = document.getElementById('score-results');
+  if (accountIds.length === 0) {
+    resultsEl.innerHTML = '<p class="helptext">Sélectionnez au moins un compte.</p>';
+    return;
+  }
+  resultsEl.innerHTML = '<p class="helptext">Analyse en cours...</p>';
+  const media = document.getElementById('media').files[0];
+  let mediaType = null;
+  if (media) mediaType = media.type.startsWith('video') ? 'video' : 'image';
+
+  const resp = await fetch('/composer/score', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      account_ids: accountIds,
+      caption: document.getElementById('caption').value,
+      media_type: mediaType,
+      post_type: postTypeInput.value,
+      scheduled_at: document.getElementById('scheduled_at').value || null,
+      options: { hashtags: document.getElementById('hashtags').value.split(',').map(s => s.trim()).filter(Boolean) }
+    })
+  });
+  const data = await resp.json();
+  resultsEl.innerHTML = data.results.map(r => `
+    <div style="margin-bottom:18px;">
+      <div class="score-wrap">
+        <div class="score-circle" style="--score:${r.score};"><span>${r.score}</span></div>
+        <div><strong>${r.label}</strong><div class="helptext">Score de visibilité estimé</div></div>
+      </div>
+      <ul class="score-tips">
+        ${r.tips.map(t => `<li class="${t.level}">${t.level === 'ok' ? '✅' : '⚠️'} ${t.text}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('') || '<p class="helptext">Aucun résultat.</p>';
+});
+</script>
+{% endblock %}

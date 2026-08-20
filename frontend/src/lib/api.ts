@@ -150,6 +150,11 @@ export const componentsApi = {
   seedSuppliers: () => api.post('/components/seed-suppliers'),
 };
 
+export const marketingApi = {
+  status: () => api.get('/marketing/status'),
+  ssoUrl: () => api.get('/marketing/sso-url'),
+};
+
 export const automationsApi = {
   list: () => api.get('/automations'),
   get: (id: string) => api.get(`/automations/${id}`),

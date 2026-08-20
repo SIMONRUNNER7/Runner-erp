@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Booster une publication' if post else 'Nouvelle campagne' }} — Runner Golf Social{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h1>{{ '🚀 Booster une publication' if post else '🎯 Nouvelle campagne publicitaire' }}</h1>
+</div>
+
+{% if post and not accounts %}
+<div class="card empty-state">
+  Cette publication n'a été publiée avec succès sur aucun réseau pour le moment — impossible de la booster.
+  <a href="/posts">Retour aux publications</a>
+</div>
+{% elif not post and not accounts %}
+<div class="card empty-state">Connectez d'abord un compte pour créer une campagne.</div>
+{% else %}
+<form method="post" action="/ads/new" enctype="multipart/form-data" class="card" style="max-width:560px;">
+  {% if post %}
+  <input type="hidden" name="post_id" value="{{ post.id }}">
+  <p class="helptext">
+    Le boost reprend automatiquement le <strong>visuel et le texte déjà publiés</strong> — c'est la publication
+    elle-même qui est mise en avant, pas une nouvelle création publicitaire.
+  </p>
+  <div class="card tight" style="background:var(--bg); display:flex; gap:12px; align-items:center;">
+    {% if post.media_type == 'image' %}
+    <img src="/uploads/{{ post.media_path.split('/')[-1] }}" style="width:64px; height:64px; object-fit:cover; border-radius:10px;">
+    {% elif post.media_type == 'video' %}
+    <div class="avatar">🎬</div>
+    {% else %}
+    <div class="avatar">📝</div>
+    {% endif %}
+    <div style="font-size:0.85rem; white-space:pre-line;">{{ (post.effective_caption or '(sans texte)')[:180] }}</div>
+  </div>
+  {% else %}
+  <p class="helptext">
+    Créez une publicité originale, indépendante de vos publications organiques, avec son propre visuel et
+    son propre texte.
+  </p>
+  {% endif %}
+
+  <label>Nom de la campagne</label>
+  <input type="text" name="name" placeholder="Promo été Runner Golf" required>
+
+  <label>Compte / plateforme</label>
+  <select name="account_id" required>
+    {% for acc in accounts %}
+    <option value="{{ acc.id }}">{{ platform_labels[acc.platform] }} — {{ acc.account_name }}</option>
+    {% endfor %}
+  </select>
+
+  {% if not post %}
+  <label>Visuel de la publicité (image ou vidéo)</label>
+  <input type="file" name="media" accept="image/*,video/*">
+
+  <label>Texte de l'annonce</label>
+  <textarea name="creative_caption" rows="3" placeholder="Votre message publicitaire..."></textarea>
+  {% endif %}
+
+  <label>Objectif</label>
+  <select name="objective">
+    {% for key, label in objective_labels.items() %}
+    <option value="{{ key.value }}">{{ label }}</option>
+    {% endfor %}
+  </select>
+
+  <label>Budget quotidien (€)</label>
+  <input type="number" name="daily_budget" value="10" min="1" step="1">
+
+  <div style="margin-top:22px; display:flex; gap:10px;">
+    <button class="btn" type="submit">Créer en brouillon</button>
+    <a class="btn secondary" href="/ads">Annuler</a>
+  </div>
+  <p class="helptext">La campagne sera créée en brouillon. Aucune dépense n'est engagée tant que vous ne
+    l'activez pas explicitement depuis la page Publicités.</p>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Runner Golf Social{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script>
+    // Mode embarqué : activé via ?embed=1 (lien/iframe depuis un autre ERP), puis
+    // mémorisé pour la session d'onglet pour rester actif en naviguant dans l'app.
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('embed') === '1') sessionStorage.setItem('rg_embed', '1');
+      if (sessionStorage.getItem('rg_embed') === '1') document.documentElement.classList.add('embed-mode');
+    })();
+  </script>
+</head>
+<body>
+  <div class="embed-topbar">
+    ⛳ Communication
+    <a href="/composer">✍️ Publier</a>
+    <a href="/calendar">🗓️ Calendrier</a>
+    <a href="/posts">📋 Publications</a>
+    <a href="/inbox">💬 Messagerie</a>
+    <a href="/stats">📈 Stats</a>
+    <a href="/" style="margin-left:auto;" onclick="sessionStorage.removeItem('rg_embed');">Vue complète ↗</a>
+  </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">⛳ Runner Golf</div>
+      <nav>
+        <a href="/" class="{{ 'active' if active == 'dashboard' }}">📊 Tableau de bord</a>
+        <a href="/composer" class="{{ 'active' if active == 'composer' }}">✍️ Nouvelle publication</a>
+        <a href="/calendar" class="{{ 'active' if active == 'calendar' }}">🗓️ Calendrier</a>
+        <a href="/posts" class="{{ 'active' if active == 'posts' }}">📋 Publications</a>
+        <a href="/media" class="{{ 'active' if active == 'media' }}">📁 Bibliothèque</a>
+        <a href="/inbox" class="{{ 'active' if active == 'inbox' }}">
+          💬 Messagerie
+          {% if unread_messages_count and unread_messages_count > 0 %}<span class="badge-count">{{ unread_messages_count }}</span>{% endif %}
+        </a>
+        <a href="/notifications" class="{{ 'active' if active == 'notifications' }}">
+          🔔 Notifications
+          {% if unread_count and unread_count > 0 %}<span class="badge-count">{{ unread_count }}</span>{% endif %}
+        </a>
+
+        <div class="nav-section">Analyse</div>
+        <a href="/stats" class="{{ 'active' if active == 'stats' }}">📈 Statistiques</a>
+        <a href="/recommendations" class="{{ 'active' if active == 'recommendations' }}">💡 Conseils</a>
+        <a href="/ads" class="{{ 'active' if active == 'ads' }}">🎯 Publicités</a>
+
+        <div class="nav-section">Réglages</div>
+        <a href="/accounts" class="{{ 'active' if active == 'accounts' }}">🔗 Comptes</a>
+        {% if is_admin %}
+        <a href="/team" class="{{ 'active' if active == 'team' }}">👥 Équipe</a>
+        {% endif %}
+        <a href="/account" class="{{ 'active' if active == 'account' }}">⚙️ Mon compte</a>
+        <a href="/logout" style="opacity:0.6;">↩ Déconnexion</a>
+      </nav>
+    </aside>
+    <main class="main">
+      {% if request.query_params.get('error') %}
+        <div class="flash error">{{ request.query_params.get('error') }}</div>
+      {% endif %}
+      {% if request.query_params.get('success') %}
+        <div class="flash success">{{ request.query_params.get('success') }}</div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
